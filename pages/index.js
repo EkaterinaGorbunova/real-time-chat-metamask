@@ -56,13 +56,23 @@ export default function Home() {
       console.log('No cookies');
     }
 
-    // Disconnect metamask wallet and reset data
+    // // Disconnect metamask wallet and reset data
+    // window.ethereum.on('accountsChanged', async () => {
+    //   console.log('accountsChanged event');
+    //   localStorage.clear(); // clear all item stored in localStorage
+    //   setCurrentUserWalletAddress('Connect your wallet');
+    // });
+  }, [currentUserWalletAddress]);
+
+  // Disconnect metamask wallet and reset data
+  if (typeof window !== 'undefined' && typeof window.ethereum !== 'undefined') {
+    // We are in the browser and metamask is running
     window.ethereum.on('accountsChanged', async () => {
       console.log('accountsChanged event');
       localStorage.clear(); // clear all item stored in localStorage
       setCurrentUserWalletAddress('Connect your wallet');
     });
-  }, [currentUserWalletAddress]);
+  }
 
   async function connectWallet() {
     if (typeof window.ethereum !== 'undefined') {
