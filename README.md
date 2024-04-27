@@ -1,6 +1,6 @@
 # Real-time Chat with Metamask integration
 
-## See the [Demo](#)
+## See app [Demo](https://real-time-chat-metamask.vercel.app/)
 
 This is a public chat allows users to exchange messages by connecting their Metamask wallet. Wallet address is used as the username in the chat.
 
