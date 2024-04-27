@@ -1,8 +1,15 @@
-# Real-time Chat runs in the browser with Ably, Nextjs, TailwindCSS, Metamask and Vercel
+# Real-time Chat with Metamask integration
 
 ## See the [Demo](#)
 
 This is a public chat allows users to exchange messages by connecting their Metamask wallet. Wallet address is used as the username in the chat.
+
+## Stack
+1. Ably
+2. NextJS
+3. Tailwind CSS
+4. Metamask
+5. Vercel
 
 ## Pre-requirements
 
