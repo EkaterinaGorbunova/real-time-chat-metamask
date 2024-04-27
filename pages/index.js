@@ -11,41 +11,46 @@ const AblyChatComponent = dynamic(
 );
 
 export default function Home() {
-  const [currentUserWalletAddress, setCurrentUserWalletAddress] =
-    React.useState('Connect your wallet');
+  // const [currentUserWalletAddress, setCurrentUserWalletAddress] =
+  //   React.useState('Connect your wallet');
 
-  // Check for window and ethereum objects only once
+  let [userAccount, setUserAccount] = React.useState({
+    isConnect: false,
+    username: '',
+    connectButtonName: 'Connect Wallet',
+  });
+
   const isBrowserWithMetamask =
     typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
 
-  React.useEffect(() => {
-    if (!isBrowserWithMetamask) return; // Guard against non-browser or missing Metamask
+  // Check if user is connected
+  let isUserConnect = async () => {
+    const [currentWalletAddress] = await window.ethereum.request({
+      method: 'eth_requestAccounts',
+    });
+    if (currentWalletAddress !== 0) {
+      return {
+        status: true,
+        walletAddress: currentWalletAddress,
+        connectButtonName: currentWalletAddress,
+      };
+    } else {
+      return {
+        status: false,
+        walletAddress: '',
+        connectButtonName: 'Connect Wallet',
+      };
+    }
+  };
 
-    // Get all cookie as JS Obj
-    let res = '';
-    let allCookies = document.cookie;
-    // Get cookies as an Object
-    if (allCookies) {
-      console.log('allCookies:', allCookies);
-      const parseCookies = (str) =>
-        str
-          // separate key-value pairs from each other
-          .split(';')
-          // separate keys from values in each pair
-          .map((v) => v.split('='))
-          // create an object with all key-value pairs
-          .reduce((acc, v) => {
-            acc[decodeURIComponent(v[0].trim())] = decodeURIComponent(
-              v[1].trim()
-            );
-            return acc;
-          }, {});
-      res = parseCookies(allCookies);
-      console.log('parseCookies res:', res);
-      if (res.isConnected) {
-        console.log('res.isConnected', res.isConnected);
-        connectWallet();
-      }
+  React.useEffect(() => {
+    if (!isBrowserWithMetamask) return;
+
+    const walletAddressLocalStorage = window.localStorage.getItem('walletAddress')
+    const isUserConnectedLocalStorage = window.localStorage.getItem('isUserConnected')
+
+    if (walletAddressLocalStorage && isUserConnectedLocalStorage) {
+      connectWallet(); // reconnect metamask
     } else {
       // if user do not connected
       if (window.ethereum.selectedAddress === null) {
@@ -53,43 +58,52 @@ export default function Home() {
       } else {
         connectWallet();
       }
-      console.log('No cookies');
     }
 
-    // // Disconnect metamask wallet and reset data
-    // window.ethereum.on('accountsChanged', async () => {
-    //   console.log('accountsChanged event');
-    //   localStorage.clear(); // clear all item stored in localStorage
-    //   setCurrentUserWalletAddress('Connect your wallet');
-    // });
-  }, [currentUserWalletAddress]);
-
-  // Disconnect metamask wallet and reset data
-  if (typeof window !== 'undefined' && typeof window.ethereum !== 'undefined') {
-    // We are in the browser and metamask is running
+    // Reset data when MetaMask disconnects
     window.ethereum.on('accountsChanged', async () => {
       console.log('accountsChanged event');
       localStorage.clear(); // clear all item stored in localStorage
-      setCurrentUserWalletAddress('Connect your wallet');
+      setUserAccount((prev) => {
+        return {
+          ...prev,
+          isConnect: false,
+          username: '',
+          connectButtonName: 'Connect Wallet',
+        };
+      });
     });
-  }
+  }, []);
 
   async function connectWallet() {
-    if (typeof window.ethereum !== 'undefined') {
+    if (isBrowserWithMetamask) {
       try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const network = await provider.getNetwork();
         const [currentWalletAddress] = await window.ethereum.request({
           method: 'eth_requestAccounts',
         });
-        // set wallet address to localStorage
+
+        let connection = await isUserConnect();
+
+        window.localStorage.setItem(
+          'isUserConnected',
+          connection.status
+        );
+
         window.localStorage.setItem(
           'walletAddress',
-          JSON.stringify(currentWalletAddress)
+          connection.walletAddress
         );
-        // console.log('Network name is', network.name);
-        // console.log('Current wallet address:', currentWalletAddress);
-        setCurrentUserWalletAddress(currentWalletAddress);
+
+        setUserAccount((prev) => {
+          return {
+            ...prev,
+            isConnect: connection.status,
+            username: connection.walletAddress,
+            connectButtonName: connection.connectButtonName,
+          };
+        });
       } catch (e) {
         console.log('Problem with loading account', e);
       }
@@ -108,14 +122,12 @@ export default function Home() {
       </Head>
 
       <ButtonConnectWallet
-        getCurrenUsertWalletAddress={connectWallet}
-        currentUserWalletAddress={currentUserWalletAddress}
+        getConnect={connectWallet}
+        connect={userAccount.connectButtonName}
       />
       {/* if wallet is connected, display the chat */}
-      {currentUserWalletAddress !== 'Connect your wallet' ? (
-        <AblyChatComponent
-          currentUserWalletAddress={currentUserWalletAddress}
-        />
+      {userAccount.username ? (
+        <AblyChatComponent currentUserWalletAddress={userAccount.username} />
       ) : (
         // if not, display the message 'connect wallet'
         <WalletIsNotConnected />

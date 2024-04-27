@@ -3,7 +3,7 @@ import React from 'react';
 const ButtonConnectWallet = (props) => {
   async function connectWallet(ev) {
     ev.preventDefault();
-    props.getCurrenUsertWalletAddress();
+    props.getConnect();
   }
   return (
     <div className='container mx-auto'>
@@ -26,9 +26,9 @@ const ButtonConnectWallet = (props) => {
           className='block text-left overflow-hidden whitespace-nowrap ml-2 font-bold text-gray-600 hover:text-gray-500 text-sm md:text-md'
           onClick={(ev) => connectWallet(ev)}
         >
-          {props.currentUserWalletAddress}
+          {props.connect}
         </button>
-        {props.currentUserWalletAddress == 'Connect your wallet' ? (
+        {props.connect === 'Connect Wallet' ? (
           <span className='absolute w-2.5 h-2.5 md:w-2.5 md:h-2.5 bg-red-600 rounded-full left-1 md:left-9 top-4.5 md:top-4'></span>
         ) : (
           <span className='absolute w-2.5 h-2.5 bg-green-600 rounded-full left-1 md:left-9 top-4.5 md:top-4'></span>
