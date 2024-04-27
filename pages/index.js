@@ -11,8 +11,6 @@ const AblyChatComponent = dynamic(
 );
 
 export default function Home() {
-  // const [currentUserWalletAddress, setCurrentUserWalletAddress] =
-  //   React.useState('Connect your wallet');
 
   let [userAccount, setUserAccount] = React.useState({
     isConnect: false,
@@ -50,7 +48,7 @@ export default function Home() {
     const isUserConnectedLocalStorage = window.localStorage.getItem('isUserConnected')
 
     if (walletAddressLocalStorage && isUserConnectedLocalStorage) {
-      connectWallet(); // reconnect metamask
+      connectWallet();
     } else {
       // if user do not connected
       if (window.ethereum.selectedAddress === null) {
@@ -63,7 +61,7 @@ export default function Home() {
     // Reset data when MetaMask disconnects
     window.ethereum.on('accountsChanged', async () => {
       console.log('accountsChanged event');
-      localStorage.clear(); // clear all item stored in localStorage
+      localStorage.clear();
       setUserAccount((prev) => {
         return {
           ...prev,
@@ -129,7 +127,7 @@ export default function Home() {
       {userAccount.username ? (
         <AblyChatComponent currentUserWalletAddress={userAccount.username} />
       ) : (
-        // if not, display the message 'connect wallet'
+        // if not, display'Сonnect Wallet' message 
         <WalletIsNotConnected />
       )}
     </>

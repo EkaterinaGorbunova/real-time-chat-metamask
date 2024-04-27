@@ -3,12 +3,13 @@ import { configureAbly, useChannel } from '@ably-labs/react-hooks';
 import { usePresence, assertConfiguration } from "@ably-labs/react-hooks";
 
 // get wallet address from local storage
-const walletAddressFromLocalStorage =
-  window.localStorage.getItem('walletAddress');
+// const walletAddressFromLocalStorage =
+//   window.localStorage.getItem('walletAddress');
 
 configureAbly({
   key: process.env.ABLY_API_KEY,
-  clientId: walletAddressFromLocalStorage.replaceAll('"', ''),
+  // clientId: walletAddressFromLocalStorage.replaceAll('"', ''),
+  clientId: window.ethereum.selectedAddress,
 });
 console.log('configureAbly', configureAbly());
 
