@@ -9,9 +9,9 @@ import { usePresence, assertConfiguration } from "@ably-labs/react-hooks";
 configureAbly({
   key: process.env.ABLY_API_KEY,
   // clientId: walletAddressFromLocalStorage.replaceAll('"', ''),
-  clientId: window.ethereum.selectedAddress,
+  clientId: window.ethereum.selectedAddress, // but could be deprecated
 });
-console.log('configureAbly', configureAbly());
+// console.log('configureAbly', configureAbly());
 
 const AblyChatComponent = (props) => {
   let inputBox = null;
@@ -93,10 +93,6 @@ const AblyChatComponent = (props) => {
       message.connectionId === ably.connection.id
         ? 'me ' + message.clientId + ':'
         : message.clientId + ':';
-    // console.log('message.data', message.data);
-    // console.log('message.connectionId', message.connectionId);
-    // console.log('ably.connection.id', ably.connection.id);
-    // console.log('message.clientId', message.clientId);
 
     return (
       <span

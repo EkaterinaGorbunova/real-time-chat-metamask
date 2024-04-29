@@ -60,7 +60,7 @@ export default function Home() {
 
     // Reset data when MetaMask disconnects
     window.ethereum.on('accountsChanged', async () => {
-      console.log('accountsChanged event');
+      // console.log('accountsChanged event');
       localStorage.clear();
       setUserAccount((prev) => {
         return {
