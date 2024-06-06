@@ -156,6 +156,7 @@ const AblyChatComponent = (props) => {
                     ></input>
                     <button
                       type='submit'
+                      aria-label="Send message"
                       className='disabled:text-gray-400'
                       disabled={messageTextIsEmpty}
                     >
@@ -192,7 +193,7 @@ const AblyChatComponent = (props) => {
                 )}
               </div>
             </div>
-            <div className='overflow-auto h-[calc(100vh-40px-100px-100px-100px)]'>
+            <div className='mx-3 overflow-auto h-[calc(100vh-40px-100px-100px-100px)]'>
               {/* get a list of users online */}
               <ul>{presenceList}</ul>
             </div>
