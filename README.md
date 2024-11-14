@@ -32,6 +32,3 @@ Messages total | 3,000,000
 Data transferred | 5.72 GiB
 Peak connections | 100
 Peak channels | 100
-
-## Hosting
-Vercel
