@@ -1,8 +1,14 @@
 # Real-time Chat with Metamask integration
 
+![BChat](./public/real-time-chat.webp)
+
 ## See app [Demo](https://real-time-chat-metamask.vercel.app/)
 
-This is a public chat allows users to exchange messages by connecting their Metamask wallet. Wallet address is used as the username in the chat.
+This is a public chat allows users to exchange messages by connecting their crypto wallet. Wallet address is used as the username in chat.
+
+## Pre-requirements
+
+- Metamask wallet or any other crypto wallet
 
 ## Stack
 1. Ably
@@ -11,13 +17,8 @@ This is a public chat allows users to exchange messages by connecting their Meta
 4. Metamask
 5. Vercel
 
-## Pre-requirements
-
-1. Metamask wallet
-2. Ably Account
-
-## Usage
-1. `git clone https://github.com/martovcompany/real-time-chat-app.git`
+## Run App Locally
+1. `git clone`
 2. `cd real-time-chat-app`
 2. `npm install`
 3. setup `.env` file with Ably API Key

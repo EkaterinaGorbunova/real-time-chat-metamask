@@ -23,7 +23,7 @@ const ButtonConnectWallet = (props) => {
           />
         </svg>
         <button
-          className='block text-left overflow-hidden whitespace-nowrap ml-2 font-bold text-gray-600 hover:text-gray-500 text-sm md:text-md'
+          className='block text-left overflow-hidden whitespace-nowrap ml-2 font-bold text-gray-600 hover:text-gray-500 hover:underline text-sm md:text-md'
           onClick={(ev) => connectWallet(ev)}
         >
           {props.connect}
