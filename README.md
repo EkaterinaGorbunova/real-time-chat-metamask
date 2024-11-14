@@ -17,7 +17,7 @@ This is a public chat allows users to exchange messages by connecting their Meta
 2. Ably Account
 
 ## Usage
-1. `git clone https://github.com/martovcompany/real-time-chat-app.git`
+1. `git clone`
 2. `cd real-time-chat-app`
 2. `npm install`
 3. setup `.env` file with Ably API Key
