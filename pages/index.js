@@ -112,6 +112,15 @@ export default function Home() {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.clear();
+    setUserAccount({
+      isConnect: false,
+      username: '',
+      connectButtonName: 'Connect Wallet',
+    });
+  };
+
   return (
     <>
       <Head>
@@ -123,12 +132,11 @@ export default function Home() {
       <ButtonConnectWallet
         getConnect={connectWallet}
         connect={userAccount.connectButtonName}
+        onLogout={handleLogout}
       />
-      {/* if wallet is connected, display the chat */}
       {userAccount.username ? (
         <AblyChatComponent currentUserWalletAddress={userAccount.username} />
       ) : (
-        // if not, display'Сonnect Wallet' message 
         <WalletIsNotConnected />
       )}
     </>

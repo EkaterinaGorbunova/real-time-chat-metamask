@@ -1,34 +1,43 @@
-# Real-time Chat with Metamask integration
-
-![BChat](./public/real-time-chat.webp)
-
-## See app [Demo](https://real-time-chat-metamask.vercel.app/)
+# Web3 Real-time Chat
 
 This is a public chat allows users to exchange messages by connecting their crypto wallet. Wallet address is used as the username in chat.
 
-## Pre-requirements
+## Features
 
-- Metamask wallet or any other crypto wallet
+- **Easy Authentication**: Connect with MetaMask - no passwords needed
+- **Real-time Messaging**: Instant message delivery and updates
+- **Web3 Identity**: Your wallet address serves as your unique username
+- **Online Status**: See who's currently active in the chat
+- **Mobile Friendly**: Chat on any device with a Web3 wallet
+- **Privacy First**: No data collection or storage - your wallet address is only used for display purposes. No databases, no tracking, no third-party cookies. Pure Web3 privacy.
 
-## Stack
-1. Ably
-2. NextJS
-3. Tailwind CSS
-4. Metamask
-5. Vercel
+## Try it now
 
-## Run App Locally
-1. `git clone`
-2. `cd real-time-chat-app`
-2. `npm install`
-3. setup `.env` file with Ably API Key
-4. `npm run dev`
+Visit our [Live Demo](https://real-time-chat-metamask.vercel.app/) to start chatting!
 
-## Free Ably Account limits:
+## How to use
 
-Quota | Allocation (per month)
---- | --- |
-Messages total | 3,000,000
-Data transferred | 5.72 GiB
-Peak connections | 100
-Peak channels | 100
+1. Visit the app in your browser
+2. Click "Connect Wallet" and approve the MetaMask connection
+3. Start chatting with other Web3 users!
+
+## Requirements
+
+- MetaMask or any other Web3 wallet
+- A modern web browser
+
+## Preview
+
+![Connect Wallet Screen](./public/connect-wallet.png)
+*Simple one-click wallet connection*
+
+![Chat Interface](./public/real-time-chat.png)
+*Real-time chat with wallet-based identities*
+
+## Tech Stack
+- Next.js - React framework
+- Ably - Real-time messaging
+- TailwindCSS - Styling
+- Ethers.js - Ethereum wallet integration
+- Vercel - Deployment
+
