@@ -1,15 +1,13 @@
 import React from 'react';
 
 const ButtonConnectWallet = (props) => {
+  const isGuest = props.userType === 'guest';
+
   const shortenAddress = (address) => {
     if (address === 'Connect Wallet') return address;
+    if (isGuest) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
-
-  async function connectWallet(ev) {
-    ev.preventDefault();
-    props.getConnect();
-  }
 
   async function handleLogout(ev) {
     ev.preventDefault();
@@ -29,37 +27,23 @@ const ButtonConnectWallet = (props) => {
             <span className="text-xl font-bold text-gray-800">Web3 Chat</span>
           </div>
           
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(ev) => connectWallet(ev)}
-              title={props.connect !== 'Connect Wallet' ? props.connect : ''}
-              className={`group relative flex items-center px-4 py-2 rounded-lg w-full md:w-auto justify-center ${
-                props.connect === 'Connect Wallet'
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {props.connect === 'Connect Wallet' ? (
-                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                ) : (
+          {props.connect !== 'Connect Wallet' && (
+            <div className="flex items-center gap-2">
+              <div
+                title={props.connect}
+                className="group relative flex items-center px-4 py-2 rounded-lg w-full md:w-auto justify-center bg-gray-100 text-gray-800"
+              >
+                <div className="flex items-center gap-2">
                   <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                )}
-                {props.connect === 'Connect Wallet' ? (
-                  <span className="font-medium">Connect Wallet</span>
-                ) : (
-                  <>
-                    <span className="hidden sm:block font-medium">{props.connect}</span>
-                    <span className="sm:hidden font-medium">{shortenAddress(props.connect)}</span>
-                    <div className="absolute invisible group-hover:visible bg-gray-900 text-white text-xs rounded-md py-1 px-2 -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                      {props.connect}
-                    </div>
-                  </>
-                )}
+                  <span aria-hidden="true">{isGuest ? '👤' : '💎'}</span>
+                  <span className="hidden sm:block font-medium">{props.connect}</span>
+                  <span className="sm:hidden font-medium">{shortenAddress(props.connect)}</span>
+                  <div className="absolute invisible group-hover:visible bg-gray-900 text-white text-xs rounded-md py-1 px-2 -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                    {isGuest ? `${props.connect} (guest)` : props.connect}
+                  </div>
+                </div>
               </div>
-            </button>
-            
-            {props.connect !== 'Connect Wallet' && (
+
               <button
                 onClick={handleLogout}
                 className="flex items-center px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors"
@@ -71,8 +55,8 @@ const ButtonConnectWallet = (props) => {
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

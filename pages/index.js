@@ -3,6 +3,7 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import ButtonConnectWallet from '../components/ButtonConnectWallet';
 import WalletIsNotConnected from '../components/WalletIsNotConnected';
+import AblyConfigError from '../components/AblyConfigError';
 import { ethers } from 'ethers';
 
 const AblyChatComponent = dynamic(
@@ -10,16 +11,20 @@ const AblyChatComponent = dynamic(
   { ssr: false }
 );
 
+const isAblyConfigured = Boolean(process.env.ABLY_API_KEY);
+
 export default function Home() {
 
   let [userAccount, setUserAccount] = React.useState({
     isConnect: false,
     username: '',
+    userType: null,
     connectButtonName: 'Connect Wallet',
   });
 
-  const isBrowserWithMetamask =
-    typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
+  // Holds an async cleanup registered by AblyChatComponent. Used on logout to
+  // leave presence and close the Ably connection before reloading.
+  const ablyCleanupRef = React.useRef(null);
 
   // Check if user is connected
   let isUserConnect = async () => {
@@ -42,6 +47,28 @@ export default function Home() {
   };
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const wasLoggedOut = window.localStorage.getItem('wasLoggedOut') === 'true'
+
+    // Skip auto-connect if the user explicitly logged out
+    if (wasLoggedOut) {
+      return;
+    }
+
+    // Restore guest session if present
+    const guestId = window.localStorage.getItem('guestId');
+    if (guestId) {
+      setUserAccount({
+        isConnect: true,
+        username: guestId,
+        userType: 'guest',
+        connectButtonName: guestId,
+      });
+      return;
+    }
+
+    const isBrowserWithMetamask = typeof window.ethereum !== 'undefined';
     if (!isBrowserWithMetamask) return;
 
     const walletAddressLocalStorage = window.localStorage.getItem('walletAddress')
@@ -67,6 +94,7 @@ export default function Home() {
           ...prev,
           isConnect: false,
           username: '',
+          userType: null,
           connectButtonName: 'Connect Wallet',
         };
       });
@@ -74,6 +102,8 @@ export default function Home() {
   }, []);
 
   async function connectWallet() {
+    const isBrowserWithMetamask =
+      typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
     if (isBrowserWithMetamask) {
       try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -83,6 +113,9 @@ export default function Home() {
         });
 
         let connection = await isUserConnect();
+
+        // Clear the explicit-logout flag on successful manual connect
+        window.localStorage.removeItem('wasLoggedOut');
 
         window.localStorage.setItem(
           'isUserConnected',
@@ -99,6 +132,7 @@ export default function Home() {
             ...prev,
             isConnect: connection.status,
             username: connection.walletAddress,
+            userType: 'wallet',
             connectButtonName: connection.connectButtonName,
           };
         });
@@ -107,16 +141,49 @@ export default function Home() {
       }
     } else {
       alert(
-        'MetaMask is not installed. Please consider installing it: https://metamask.io/download.html'
+        'No Web3 wallet detected. Please install MetaMask, Coinbase Wallet, Rabby, or any other Web3 wallet to continue.'
       );
     }
   }
 
-  const handleLogout = () => {
+  const joinAsGuest = (nickname) => {
+    const trimmed = (nickname || '').trim();
+    if (!trimmed) return;
+    window.localStorage.removeItem('wasLoggedOut');
+    window.localStorage.setItem('guestId', trimmed);
+    window.localStorage.setItem('isUserConnected', 'true');
+    setUserAccount({
+      isConnect: true,
+      username: trimmed,
+      userType: 'guest',
+      connectButtonName: trimmed,
+    });
+  };
+
+  const handleLogout = async () => {
     localStorage.clear();
+    // Remember explicit logout so the app does not auto-reconnect on reload
+    localStorage.setItem('wasLoggedOut', 'true');
+    // Explicitly leave presence and close the Ably connection so the next
+    // user does not see a stale presence entry for the previous session.
+    if (ablyCleanupRef.current) {
+      try {
+        await ablyCleanupRef.current();
+      } catch (e) {
+        // ignore best-effort cleanup errors
+      }
+    }
+    // Reload the page so the Ably client (singleton with cached clientId) is
+    // fully reset. Without a reload, a subsequent login would keep the previous
+    // user's presence entry and publish messages under the old clientId.
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+      return;
+    }
     setUserAccount({
       isConnect: false,
       username: '',
+      userType: null,
       connectButtonName: 'Connect Wallet',
     });
   };
@@ -130,14 +197,25 @@ export default function Home() {
       </Head>
 
       <ButtonConnectWallet
-        getConnect={connectWallet}
         connect={userAccount.connectButtonName}
+        userType={userAccount.userType}
         onLogout={handleLogout}
       />
       {userAccount.username ? (
-        <AblyChatComponent currentUserWalletAddress={userAccount.username} />
+        isAblyConfigured ? (
+          <AblyChatComponent
+            currentUserWalletAddress={userAccount.username}
+            userType={userAccount.userType}
+            cleanupRef={ablyCleanupRef}
+          />
+        ) : (
+          <AblyConfigError />
+        )
       ) : (
-        <WalletIsNotConnected />
+        <WalletIsNotConnected
+          onJoinAsGuest={joinAsGuest}
+          onConnectWallet={connectWallet}
+        />
       )}
     </>
   );
