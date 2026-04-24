@@ -78,7 +78,7 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
                   maxLength={MAX_NICKNAME_LENGTH}
                   placeholder="Your nickname"
                   aria-label="Guest nickname"
-                  className="flex-1 px-4 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 px-4 py-2 text-base bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <button
                   type="submit"

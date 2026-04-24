@@ -194,6 +194,10 @@ export default function Home() {
         <title>Chat</title>
         <link rel='icon' href='/favicon.ico' />
         <meta name="description" content="real-time Chat with Metamask" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
       </Head>
 
       <ButtonConnectWallet

@@ -36,6 +36,7 @@ const parseClientId = (clientId) => {
 const AblyChatComponent = (props) => {
   let inputBox = null;
   const messagesEndRef = React.useRef(null);
+  const messagesContainerRef = React.useRef(null);
 
   const [messageText, setMessageText] = useState('');
   const [receivedMessages, setMessages] = useState([]);
@@ -194,13 +195,17 @@ const AblyChatComponent = (props) => {
     );
   });
 
+  // Auto-scroll only when the number of messages actually changes. Depending on
+  // the `messages` array (recreated on every render) caused the effect to fire
+  // on every keystroke, which on iOS produced a visible UI jump while typing.
+  // Scrolling the container directly (instead of scrollIntoView) keeps the
+  // scroll local and prevents the page/window from scrolling.
   React.useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'end',
-      inline: 'nearest',
-    });
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [receivedMessages.length]);
 
   return (
     <div className="container mx-auto pt-32 md:pt-20"> {/* Увеличили отступ на мобильных до 128px */}
@@ -208,7 +213,10 @@ const AblyChatComponent = (props) => {
         {/* Main Chat Area */}
         <div className="lg:col-span-3 bg-white">
           <div className="grid grid-rows-[1fr_auto]">
-            <div className="flex flex-col gap-4 p-6 h-[calc(100vh-220px)] lg:h-[calc(100vh-160px)] overflow-y-auto bg-gray-50">
+            <div
+              ref={messagesContainerRef}
+              className="flex flex-col gap-4 p-6 h-[calc(100dvh-220px)] lg:h-[calc(100dvh-160px)] overflow-y-auto overscroll-contain bg-gray-50"
+            >
               {props.currentUserWalletAddress !== 'Connect your wallet' &&
                 receivedMessages.map((message, index) => {
                   const isMe = message.clientId === ably.auth.clientId;
@@ -252,7 +260,9 @@ const AblyChatComponent = (props) => {
                     placeholder="Type your message..."
                     onChange={(e) => setMessageText(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    className="flex-1 px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    // text-base == 16px: prevents iOS Safari from auto-zooming
+                    // into the input on focus (which triggers a layout shift).
+                    className="flex-1 px-4 py-2 text-base bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <button
                     type="submit"
