@@ -42,7 +42,7 @@ const LEAVE_EMOJIS = ['👋', '🚪', '💨', '🌙', '✌️', '🫡', '😢', 
 const JOIN_TEMPLATES = [
   '%s joined the chat',
   '%s just dropped in',
-  'Look who showed up — %s',
+  'Look who showed up – %s',
   '%s is here!',
   'Say hi to %s',
   'A wild %s appeared',
