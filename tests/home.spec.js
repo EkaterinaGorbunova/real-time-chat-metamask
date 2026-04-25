@@ -1,25 +1,5 @@
 // @ts-check
-const fs = require('fs');
-const path = require('path');
 const { test, expect } = require('@playwright/test');
-
-// Tests that exercise the real chat UI require a working Ably client. When the
-// ABLY_API_KEY is not configured (e.g. on a fork without secrets) the app
-// renders an AblyConfigError instead of the chat, so the message input never
-// appears. Detect the key from either the process env or a local .env file
-// (Next.js loads .env.local at build/dev time but Playwright does not), and
-// skip the chat-dependent tests when it is missing rather than failing CI.
-const hasAblyKeyInEnv = Boolean(process.env.ABLY_API_KEY);
-const hasAblyKeyInDotenv = ['.env.local', '.env'].some((file) => {
-  try {
-    const content = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
-    return /^\s*ABLY_API_KEY\s*=\s*\S/m.test(content);
-  } catch (_) {
-    return false;
-  }
-});
-const ABLY_CONFIGURED = hasAblyKeyInEnv || hasAblyKeyInDotenv;
-const describeChat = ABLY_CONFIGURED ? test.describe : test.describe.skip;
 
 test.describe('Real-time Chat - Home page', () => {
   test.beforeEach(async ({ page }) => {
@@ -73,7 +53,7 @@ test.describe('Real-time Chat - Home page', () => {
   });
 });
 
-describeChat('Real-time Chat - Connected wallet (mocked MetaMask)', () => {
+test.describe('Real-time Chat - Connected wallet (mocked MetaMask)', () => {
   test.beforeEach(async ({ page }) => {
     // Inject a minimal EIP-1193 provider mock before the app loads
     await page.addInitScript(() => {
@@ -143,63 +123,54 @@ test.describe('Real-time Chat - Guest mode', () => {
     ).toBeDisabled();
   });
 
-  (ABLY_CONFIGURED ? test : test.skip)(
-    'entering chat as guest shows chat interface and guest icon',
-    async ({ page }) => {
-      const nicknameInput = page.getByLabel('Guest nickname');
-      await nicknameInput.fill('TestGuest');
-      await page.getByRole('button', { name: 'Join as Guest' }).click();
+  test('entering chat as guest shows chat interface and guest icon', async ({ page }) => {
+    const nicknameInput = page.getByLabel('Guest nickname');
+    await nicknameInput.fill('TestGuest');
+    await page.getByRole('button', { name: 'Join as Guest' }).click();
 
-      await expect(
-        page.getByPlaceholder('Type your message...')
-      ).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.getByPlaceholder('Type your message...')
+    ).toBeVisible({ timeout: 15000 });
 
-      // Header should display the nickname (as a titled badge)
-      await expect(page.getByTitle('TestGuest')).toBeVisible();
-    }
-  );
+    // Header should display the nickname (as a titled badge)
+    await expect(page.getByTitle('TestGuest')).toBeVisible();
+  });
 
-  (ABLY_CONFIGURED ? test : test.skip)(
-    'guest session persists across page reload',
-    async ({ page }) => {
-      await page.getByLabel('Guest nickname').fill('PersistentGuest');
-      await page.getByRole('button', { name: 'Join as Guest' }).click();
-      await expect(
-        page.getByPlaceholder('Type your message...')
-      ).toBeVisible({ timeout: 15000 });
+  test('guest session persists across page reload', async ({ page }) => {
+    await page.getByLabel('Guest nickname').fill('PersistentGuest');
+    await page.getByRole('button', { name: 'Join as Guest' }).click();
+    await expect(
+      page.getByPlaceholder('Type your message...')
+    ).toBeVisible({ timeout: 15000 });
 
-      await page.reload();
+    await page.reload();
 
-      await expect(
-        page.getByPlaceholder('Type your message...')
-      ).toBeVisible({ timeout: 15000 });
-      await expect(
-        page.getByRole('heading', { name: 'Continue as Guest' })
-      ).toHaveCount(0);
-    }
-  );
+    await expect(
+      page.getByPlaceholder('Type your message...')
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.getByRole('heading', { name: 'Continue as Guest' })
+    ).toHaveCount(0);
+  });
 
-  (ABLY_CONFIGURED ? test : test.skip)(
-    'logout from guest returns to join screen and does not auto-reconnect',
-    async ({ page }) => {
-      await page.getByLabel('Guest nickname').fill('LogoutGuest');
-      await page.getByRole('button', { name: 'Join as Guest' }).click();
-      await expect(
-        page.getByPlaceholder('Type your message...')
-      ).toBeVisible({ timeout: 15000 });
+  test('logout from guest returns to join screen and does not auto-reconnect', async ({ page }) => {
+    await page.getByLabel('Guest nickname').fill('LogoutGuest');
+    await page.getByRole('button', { name: 'Join as Guest' }).click();
+    await expect(
+      page.getByPlaceholder('Type your message...')
+    ).toBeVisible({ timeout: 15000 });
 
-      await page.getByRole('button', { name: 'Logout', exact: true }).click();
-      await expect(
-        page.getByRole('heading', { name: 'Continue as Guest' })
-      ).toBeVisible();
+    await page.getByRole('button', { name: 'Logout', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Continue as Guest' })
+    ).toBeVisible();
 
-      await page.reload();
-      await expect(
-        page.getByRole('heading', { name: 'Continue as Guest' })
-      ).toBeVisible();
-      await expect(
-        page.getByPlaceholder('Type your message...')
-      ).toHaveCount(0);
-    }
-  );
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: 'Continue as Guest' })
+    ).toBeVisible();
+    await expect(
+      page.getByPlaceholder('Type your message...')
+    ).toHaveCount(0);
+  });
 });
