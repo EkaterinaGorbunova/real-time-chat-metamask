@@ -45,12 +45,12 @@ const TipModal = ({ open, onClose, recipientAddress, recipientLabel, fromAddress
     setError(null);
     let valueWei;
     try {
-      valueWei = ethers.utils.parseEther(String(amount).trim());
+      valueWei = ethers.parseEther(String(amount).trim());
     } catch (parseErr) {
       setError('Enter a valid amount (e.g. 0.001).');
       return;
     }
-    if (valueWei.lte(0)) { setError('Amount must be greater than zero.'); return; }
+    if (valueWei <= 0n) { setError('Amount must be greater than zero.'); return; }
     if (!window.ethereum || typeof window.ethereum.request !== 'function') {
       setError('No Web3 wallet detected.');
       return;
@@ -59,7 +59,7 @@ const TipModal = ({ open, onClose, recipientAddress, recipientLabel, fromAddress
     try {
       const hash = await window.ethereum.request({
         method: 'eth_sendTransaction',
-        params: [{ from: fromAddress, to: recipientAddress, value: valueWei.toHexString() }],
+        params: [{ from: fromAddress, to: recipientAddress, value: ethers.toBeHex(valueWei) }],
       });
       setTxHash(hash);
       setStatus('success');
