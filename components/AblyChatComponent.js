@@ -3,6 +3,7 @@ import { configureAbly, useChannel } from '@ably-labs/react-hooks';
 import { usePresence, assertConfiguration } from "@ably-labs/react-hooks";
 import EmojiPicker from './EmojiPicker';
 import Avatar from './Avatar';
+import TipModal from './TipModal';
 import { useEnsName } from '../lib/ens';
 import { getChainInfo, normalizeChainId } from '../lib/chains';
 import { loadStoredSiwe, verifySiwe, SIWE_EVENT } from '../lib/siwe';
@@ -387,6 +388,8 @@ const AblyChatComponent = (props) => {
   const [messageText, setMessageText] = useState('');
   const [receivedMessages, setMessages] = useState([]);
   const [numberOfMembers, setNumberOfMembers] = useState(0);
+  // Currently-targeted recipient for the tip modal. `null` when closed.
+  const [tipTarget, setTipTarget] = useState(null);
   const messageTextIsEmpty = messageText.trim().length === 0;
   // Hard-cap state used to disable the send button and paint the textarea red.
   // Counts characters of the raw input so the UI reflects what the user typed,
@@ -662,6 +665,10 @@ const AblyChatComponent = (props) => {
         ? (isItMe ? localSiwe : decoded.siwe)
         : null;
       const isVerified = type === 'wallet' && verifySiwe(memberSiwe, address);
+      // Show the tip button only when (a) we are a wallet user ourselves
+      // (so we have a `from` to send from), (b) the target is a different
+      // wallet user, and (c) we have an address to tip to.
+      const canTip = !isItMe && type === 'wallet' && address && myWalletAddress;
 
       return (
         <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
@@ -679,7 +686,21 @@ const AblyChatComponent = (props) => {
               )}
               {isItMe && <span className="text-[color:var(--accent)] text-xs ml-1">(me)</span>}
             </span>
-            {memberChainId && <ChainBadge chainId={memberChainId} />}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {memberChainId && <ChainBadge chainId={memberChainId} />}
+              {canTip && (
+                <button
+                  type="button"
+                  data-testid="tip-button"
+                  onClick={() => setTipTarget({ address, label: display })}
+                  title={`Send a tip to ${display}`}
+                  aria-label={`Send a tip to ${display}`}
+                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-xs px-1.5 py-0.5 rounded-md border border-[color:var(--border)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] text-[color:var(--text-muted)]"
+                >
+                  💸
+                </button>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -833,6 +854,14 @@ const AblyChatComponent = (props) => {
 
   return (
     <div className="container mx-auto pt-32 md:pt-20">
+      <TipModal
+        open={Boolean(tipTarget)}
+        onClose={() => setTipTarget(null)}
+        recipientAddress={tipTarget && tipTarget.address}
+        recipientLabel={tipTarget && tipTarget.label}
+        fromAddress={myWalletAddress}
+        chainId={localChainId}
+      />
       {/* On lg the chat card has a fixed height (viewport - top padding) and the
           inner column uses flex with min-h-0, so messages shrink when the
           textarea auto-grows. On mobile the sidebar stacks below, so the card
