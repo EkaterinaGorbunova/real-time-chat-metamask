@@ -1,14 +1,21 @@
 import React from 'react';
 import ThemeToggle from './ThemeToggle';
+import { useEnsName } from '../lib/ens';
 
 const ButtonConnectWallet = (props) => {
   const isGuest = props.userType === 'guest';
+  // For wallet users, prefer ENS name over the raw address. Hook returns null
+  // for guests (non-address inputs) so the original label is shown unchanged.
+  const ensName = useEnsName(isGuest ? null : props.connect);
 
   const shortenAddress = (address) => {
     if (address === 'Connect Wallet') return address;
     if (isGuest) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
+
+  const fullLabel = ensName || props.connect;
+  const shortLabel = ensName || shortenAddress(props.connect);
 
   async function handleLogout(ev) {
     ev.preventDefault();
@@ -43,8 +50,8 @@ const ButtonConnectWallet = (props) => {
                       <span className="relative inline-flex w-2 h-2 rounded-full bg-[color:var(--online)]" />
                     </span>
                     <span aria-hidden="true">{isGuest ? '👤' : '💎'}</span>
-                    <span className="hidden sm:block text-sm font-medium">{props.connect}</span>
-                    <span className="sm:hidden text-sm font-medium">{shortenAddress(props.connect)}</span>
+                    <span className="hidden sm:block text-sm font-medium">{fullLabel}</span>
+                    <span className="sm:hidden text-sm font-medium">{shortLabel}</span>
                   </div>
                 </div>
 
