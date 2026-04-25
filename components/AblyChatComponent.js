@@ -56,6 +56,22 @@ const LEAVE_TEMPLATES = [
 ];
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+// 12-hour HH:MM AM/PM (e.g. "11:04 PM"). Ably messages carry a server-set
+// `timestamp` (ms epoch); we fall back to `Date.now()` for safety in case a
+// locally-injected message ever lacks one. `en-US` is pinned so the AM/PM
+// suffix renders consistently regardless of the user's browser locale.
+const formatShortTime = (ts) => {
+  const d = new Date(ts || Date.now());
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+};
+const formatFullDate = (ts) => {
+  const d = new Date(ts || Date.now());
+  return d.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+};
+
 const AblyChatComponent = (props) => {
   const inputBoxRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
@@ -346,6 +362,23 @@ const AblyChatComponent = (props) => {
                               {type === 'guest' && <span className="opacity-75">(guest)</span>}
                             </>
                           )}
+                          <span className="relative group/ts ml-1">
+                            <span className="opacity-70 tabular-nums">
+                              {formatShortTime(message.timestamp)}
+                            </span>
+                            <span
+                              role="tooltip"
+                              // Anchor tooltip to the message side so it never
+                              // overflows the chat container (which clips with
+                              // overflow-y-auto): own messages are right-aligned,
+                              // so we anchor by the right edge; others by the left.
+                              className={`pointer-events-none absolute bottom-full mb-1 px-2 py-1 rounded-md whitespace-nowrap text-xs bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text)] shadow-md opacity-0 group-hover/ts:opacity-100 transition-opacity z-10 ${
+                                isMe ? 'right-0' : 'left-0'
+                              }`}
+                            >
+                              {formatFullDate(message.timestamp)}
+                            </span>
+                          </span>
                         </div>
                         <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
                           {message.data}
