@@ -361,11 +361,16 @@ const AblyChatComponent = (props) => {
                               {type === 'guest' && <span className="opacity-75">(guest)</span>}
                             </>
                           )}
-                          <span
-                            className="ml-1 opacity-70 cursor-help tabular-nums"
-                            title={formatFullDate(message.timestamp)}
-                          >
-                            {formatShortTime(message.timestamp)}
+                          <span className="relative group/ts ml-1">
+                            <span className="opacity-70 tabular-nums">
+                              {formatShortTime(message.timestamp)}
+                            </span>
+                            <span
+                              role="tooltip"
+                              className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded-md whitespace-nowrap text-xs bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text)] shadow-md opacity-0 group-hover/ts:opacity-100 transition-opacity z-10"
+                            >
+                              {formatFullDate(message.timestamp)}
+                            </span>
                           </span>
                         </div>
                         <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
