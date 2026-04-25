@@ -5,6 +5,7 @@ import EmojiPicker from './EmojiPicker';
 import Avatar from './Avatar';
 import { useEnsName } from '../lib/ens';
 import { getChainInfo, normalizeChainId } from '../lib/chains';
+import { loadStoredSiwe, verifySiwe, SIWE_EVENT } from '../lib/siwe';
 
 // Resolve the Ably clientId from either a connected wallet or a stored guest session.
 // Prefixes let the chat UI distinguish wallet users from guests.
@@ -102,6 +103,53 @@ const WalletName = ({ address, fallback, className }) => {
     </a>
   );
 };
+
+// Encode/decode the presence payload. We carry both the chainId and an
+// optional SIWE signature in a JSON-stringified envelope so peers can render
+// chain badges and verify identity without separate channels. Plain-string
+// payloads from older clients are interpreted as a bare chainId for
+// backward compatibility within a single deploy.
+const encodePresencePayload = ({ chainId, siwe }) => {
+  const envelope = {};
+  if (chainId) envelope.c = chainId;
+  if (siwe && siwe.message && siwe.signature) envelope.s = siwe;
+  if (!envelope.c && !envelope.s) return '';
+  try { return JSON.stringify(envelope); } catch (e) { return ''; }
+};
+
+const decodePresencePayload = (raw) => {
+  if (!raw) return { chainId: null, siwe: null };
+  if (typeof raw !== 'string') return { chainId: null, siwe: null };
+  if (raw.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(raw);
+      return { chainId: parsed.c || null, siwe: parsed.s || null };
+    } catch (e) {
+      return { chainId: null, siwe: null };
+    }
+  }
+  // Legacy string payload (chainId only).
+  return { chainId: raw, siwe: null };
+};
+
+// Small green checkmark shown next to wallet users whose SIWE signature has
+// been verified locally. The tooltip explains what was verified so users
+// understand the meaning of the badge.
+const VerifiedBadge = () => (
+  <span
+    data-testid="verified-badge"
+    title="Verified: signature matches this wallet address"
+    aria-label="Verified wallet"
+    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold flex-shrink-0"
+    style={{
+      background: 'rgba(34, 197, 94, 0.15)',
+      color: 'rgb(34, 197, 94)',
+      border: '1px solid rgba(34, 197, 94, 0.45)',
+    }}
+  >
+    ✓
+  </span>
+);
 
 // Reads the connected wallet's chainId synchronously on mount and listens
 // for `chainChanged` events so the badge updates when the user switches
@@ -440,23 +488,46 @@ const AblyChatComponent = (props) => {
     try { typingChannel.publish(kind, ''); } catch (e) { /* best-effort */ }
   }, [typingChannel]);
 
-  // Track the local wallet's chain so we can both render our own badge and
-  // broadcast it to the room via presence data. Empty string for guests so
-  // the presence payload stays well-defined.
+  // Track the local wallet's chain + SIWE signature so we can both render
+  // our own badges and broadcast them to the room via presence data. The
+  // payload is JSON-encoded; legacy decoders treat plain strings as bare
+  // chainIds for backward compatibility within a single deploy.
   const localChainId = useChainId();
-  const initialPresencePayloadRef = React.useRef(normalizeChainId(localChainId) || '');
+  const myWalletAddress = React.useMemo(() => {
+    if (!ably || !ably.auth || !ably.auth.clientId) return null;
+    const parsed = parseClientId(ably.auth.clientId);
+    return parsed.type === 'wallet' ? parsed.address : null;
+  }, [ably]);
+  const [localSiwe, setLocalSiwe] = React.useState(() => loadStoredSiwe(myWalletAddress));
+  // Pick up signatures that arrive after mount (the wallet popup is async)
+  // by listening for the custom event dispatched from lib/siwe on success.
+  React.useEffect(() => {
+    if (!myWalletAddress) return undefined;
+    const refresh = () => setLocalSiwe(loadStoredSiwe(myWalletAddress));
+    refresh();
+    if (typeof window === 'undefined') return undefined;
+    window.addEventListener(SIWE_EVENT, refresh);
+    return () => window.removeEventListener(SIWE_EVENT, refresh);
+  }, [myWalletAddress]);
+
+  const initialPresencePayloadRef = React.useRef(
+    encodePresencePayload({ chainId: normalizeChainId(localChainId), siwe: localSiwe })
+  );
   const [presenceData, updatePresence] = usePresence("headlines", initialPresencePayloadRef.current);
-  // Mirror later chain switches into presence so other clients see the
-  // updated badge without a reload. Skip the first identical value to avoid
-  // an immediate redundant `update` right after `enter`.
-  const lastSentChainRef = React.useRef(initialPresencePayloadRef.current);
+  // Mirror chainId / signature changes into presence so other clients see
+  // updated badges without a reload. Skip identical payloads to avoid
+  // redundant presence `update` events right after `enter`.
+  const lastSentPayloadRef = React.useRef(initialPresencePayloadRef.current);
   React.useEffect(() => {
     if (!updatePresence) return;
-    const next = normalizeChainId(localChainId) || '';
-    if (next === lastSentChainRef.current) return;
-    lastSentChainRef.current = next;
+    const next = encodePresencePayload({
+      chainId: normalizeChainId(localChainId),
+      siwe: localSiwe,
+    });
+    if (next === lastSentPayloadRef.current) return;
+    lastSentPayloadRef.current = next;
     try { updatePresence(next); } catch (e) { /* best-effort */ }
-  }, [localChainId, updatePresence]);
+  }, [localChainId, localSiwe, updatePresence]);
 
   // Derive Discord-style join/leave system messages by diffing successive
   // `presenceData` snapshots. A subscribe-based approach would miss the
@@ -580,12 +651,17 @@ const AblyChatComponent = (props) => {
     const presenceList = uniquePresence.map((member, index) => {
       const isItMe = member.clientId === ably.auth.clientId;
       const { display, type, address } = parseClientId(member.clientId);
-      // Prefer the locally-known chainId for self (more up-to-date than the
-      // round-tripped presence value); for everyone else, read from their
-      // presence payload. Only wallet users get a badge.
+      // Decode the per-member presence envelope once. Self uses local state
+      // (more up-to-date than the round-tripped value); peers use whatever
+      // their presence payload carries. Only wallet users get badges.
+      const decoded = decodePresencePayload(member.data);
       const memberChainId = type === 'wallet'
-        ? (isItMe ? localChainId : (member.data || null))
+        ? (isItMe ? localChainId : decoded.chainId)
         : null;
+      const memberSiwe = type === 'wallet'
+        ? (isItMe ? localSiwe : decoded.siwe)
+        : null;
+      const isVerified = type === 'wallet' && verifySiwe(memberSiwe, address);
 
       return (
         <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
@@ -597,6 +673,7 @@ const AblyChatComponent = (props) => {
               ) : (
                 <span className="truncate">{display}</span>
               )}
+              {isVerified && <VerifiedBadge />}
               {type === 'guest' && (
                 <span className="text-[color:var(--text-subtle)] text-xs">(guest)</span>
               )}
