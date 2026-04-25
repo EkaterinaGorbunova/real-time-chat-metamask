@@ -41,13 +41,13 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
             Chat for the <span className="text-[color:var(--accent)]">decentralized</span> web
           </h1>
           <p className="mt-3 text-[color:var(--text-muted)] text-sm md:text-base">
-            Bring your wallet or just a nickname &mdash; pick how you want to join the conversation.
+            Bring your wallet or just a nickname &ndash; pick how you want to join the conversation.
           </p>
         </div>
 
         <div className="flex flex-col md:flex-row md:items-stretch gap-6">
-          <div className="flex-1 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col transition-colors hover:border-[color:var(--accent)]/40">
-            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/40 to-transparent" />
+          <div className="card-neon flex-1 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col hover:border-[color:var(--accent)]/50">
+            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/60 to-transparent" />
             <div className="text-5xl mb-3" aria-hidden="true">💎</div>
             <h2 className="text-2xl font-semibold tracking-tight text-[color:var(--text)] mb-2">Connect Your Wallet</h2>
             <p className="text-[color:var(--text-muted)] mb-6 text-sm">
@@ -73,8 +73,8 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
             <div className="flex-1 h-px bg-[color:var(--border)]" />
           </div>
 
-          <div className="flex-1 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col transition-colors hover:border-[color:var(--accent)]/40">
-            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/40 to-transparent" />
+          <div className="card-neon flex-1 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col hover:border-[color:var(--accent)]/50">
+            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/60 to-transparent" />
             <div className="text-5xl mb-3" aria-hidden="true">👤</div>
             <h2 className="text-2xl font-semibold tracking-tight text-[color:var(--text)] mb-2">Continue as Guest</h2>
             <p className="text-[color:var(--text-muted)] mb-6 text-sm">

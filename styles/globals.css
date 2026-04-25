@@ -23,18 +23,18 @@
 }
 
 .dark {
-  --bg: #0a0a0f;
-  --bg-elev: #13131a;
-  --surface: #13131a;
-  --surface-muted: #1c1c24;
-  --border: #27272f;
-  --border-strong: #3f3f46;
-  --text: #e4e4e7;
-  --text-muted: #a1a1aa;
-  --text-subtle: #71717a;
+  --bg: #0b1020;
+  --bg-elev: #121833;
+  --surface: #131a32;
+  --surface-muted: #1a2240;
+  --border: #2a3358;
+  --border-strong: #3b4670;
+  --text: #e4e7f1;
+  --text-muted: #a4abc4;
+  --text-subtle: #767e9b;
   --accent: #a78bfa;
   --accent-hover: #c4b5fd;
-  --accent-soft: rgba(167, 139, 250, 0.12);
+  --accent-soft: rgba(167, 139, 250, 0.14);
   --online: #10b981;
   --shadow-glow: 0 0 32px -4px rgba(167, 139, 250, 0.45);
 }
@@ -48,11 +48,14 @@ body {
   transition: background-color 200ms ease, color 200ms ease;
 }
 
-/* Subtle radial backdrop so dark mode does not feel flat. */
+/* Layered gradient backdrop: violet top-left, cyan bottom-right, deep
+   indigo wash in the middle. Gives the dark theme a bluish, modern
+   "Web3" feel without overpowering content. */
 body {
   background-image:
-    radial-gradient(circle at 15% 0%, rgba(167, 139, 250, 0.10), transparent 45%),
-    radial-gradient(circle at 85% 100%, rgba(56, 189, 248, 0.06), transparent 50%);
+    radial-gradient(circle at 12% -10%, rgba(167, 139, 250, 0.20), transparent 50%),
+    radial-gradient(circle at 88% 110%, rgba(56, 189, 248, 0.16), transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.10), transparent 70%);
   background-attachment: fixed;
 }
 
@@ -60,4 +63,35 @@ body {
   background-image:
     radial-gradient(circle at 15% 0%, rgba(124, 58, 237, 0.07), transparent 45%),
     radial-gradient(circle at 85% 100%, rgba(56, 189, 248, 0.05), transparent 50%);
+}
+
+/* Neon glass card: violet outer halo + thin inner highlight. Hover gently
+   intensifies the halo and lifts the card. Light mode uses a softer drop
+   shadow so the effect does not feel synthetic on a bright background. */
+.card-neon {
+  box-shadow:
+    0 0 0 1px rgba(167, 139, 250, 0.12),
+    0 18px 48px -20px rgba(167, 139, 250, 0.45),
+    0 0 60px -24px rgba(56, 189, 248, 0.30);
+  transition: box-shadow 250ms ease, transform 250ms ease, border-color 250ms ease;
+}
+
+.card-neon:hover {
+  box-shadow:
+    0 0 0 1px rgba(167, 139, 250, 0.30),
+    0 24px 64px -20px rgba(167, 139, 250, 0.60),
+    0 0 80px -20px rgba(56, 189, 248, 0.40);
+  transform: translateY(-2px);
+}
+
+:root:not(.dark) .card-neon {
+  box-shadow:
+    0 0 0 1px rgba(124, 58, 237, 0.10),
+    0 16px 40px -20px rgba(124, 58, 237, 0.25);
+}
+
+:root:not(.dark) .card-neon:hover {
+  box-shadow:
+    0 0 0 1px rgba(124, 58, 237, 0.22),
+    0 22px 56px -20px rgba(124, 58, 237, 0.35);
 }
