@@ -707,8 +707,9 @@ const ChatBody = (props) => {
       updateMemberCount();
 
       // Update member count on presence changes
+      let presenceChannel = null;
       if (presenceData && presenceData.channel) {
-        const presenceChannel = presenceData.channel;
+        presenceChannel = presenceData.channel;
         presenceChannel.once('enter', updateMemberCount);
         presenceChannel.once('leave', updateMemberCount);
       }
