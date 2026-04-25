@@ -1,7 +1,9 @@
-import { Html, Head, Main, NextScript } from 'next/document'
+import '../styles/globals.css';
 
 // Inline script that runs before render to apply the persisted theme and
-// avoid a light-on-load flash for users whose preference is dark.
+// avoid a light-on-load flash for users whose preference is dark. Identical
+// behaviour to the previous pages/_document.js implementation; lives directly
+// in <head> so the .dark class is on <html> for the very first paint.
 const themeInitScript = `
 (function() {
   try {
@@ -15,15 +17,22 @@ const themeInitScript = `
 })();
 `;
 
-export default function Document() {
+export const metadata = {
+  title: 'Chat',
+  description: 'real-time Chat with Metamask',
+  icons: { icon: '/favicon.ico' },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
+export default function RootLayout({ children }) {
   return (
-    <Html lang="en">
-      <Head>
-        {/* Run the theme init before any stylesheet or body parsing so the
-            .dark class is on <html> for the very first paint. Placing this
-            in <body> would let the browser briefly compute the body
-            background from the light :root tokens, producing a white flash
-            on full page reloads (e.g. after logout). */}
+    <html lang="en" suppressHydrationWarning>
+      <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -31,11 +40,8 @@ export default function Document() {
           href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
-      </Head>
-      <body>
-        <Main />
-        <NextScript />
-      </body>
-    </Html>
-  )
+      </head>
+      <body>{children}</body>
+    </html>
+  );
 }
