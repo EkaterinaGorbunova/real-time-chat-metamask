@@ -728,7 +728,7 @@ const AblyChatComponent = (props) => {
       const canTip = showTip && !!myWalletAddress;
 
       return (
-        <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
+        <div key={member.clientId || index} data-testid="presence-row" data-client-id={member.clientId || ''} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
           <div className="text-[color:var(--text)] text-sm flex items-center justify-between gap-2">
             <span className="truncate flex items-center gap-1.5 min-w-0">
               <Avatar type={type} address={address} nickname={display} size={20} />
