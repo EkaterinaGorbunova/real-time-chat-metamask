@@ -100,6 +100,55 @@ const AblyChatComponent = (props) => {
     }
   });
 
+  // Typing indicator on a transient sibling channel: lightweight events
+  // (start/stop) keyed by clientId. State is a Map of clientId -> expiry ms;
+  // an expiry sweep clears stragglers if a "stop" event was lost.
+  const [typingUsers, setTypingUsers] = useState(() => new Map());
+  const TYPING_TTL_MS = 4000;
+  const TYPING_THROTTLE_MS = 2000;
+  const lastTypingSentRef = React.useRef(0);
+  const [typingChannel] = useChannel('typing', (msg) => {
+    if (!ably || !ably.auth || msg.clientId === ably.auth.clientId) return;
+    setTypingUsers((prev) => {
+      const next = new Map(prev);
+      if (msg.name === 'stop') {
+        next.delete(msg.clientId);
+      } else {
+        next.set(msg.clientId, Date.now() + TYPING_TTL_MS);
+      }
+      return next;
+    });
+  });
+
+  // Sweep expired typers every second so the indicator clears even if the
+  // sender disconnected before publishing a 'stop'.
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setTypingUsers((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next = new Map(prev);
+        next.forEach((expiry, id) => {
+          if (expiry <= now) { next.delete(id); changed = true; }
+        });
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const publishTyping = React.useCallback((kind) => {
+    if (!typingChannel) return;
+    if (kind === 'start') {
+      const now = Date.now();
+      if (now - lastTypingSentRef.current < TYPING_THROTTLE_MS) return;
+      lastTypingSentRef.current = now;
+    } else {
+      lastTypingSentRef.current = 0;
+    }
+    try { typingChannel.publish(kind, ''); } catch (e) { /* best-effort */ }
+  }, [typingChannel]);
+
   const [presenceData] = usePresence("headlines");
 
   // Derive Discord-style join/leave system messages by diffing successive
@@ -236,8 +285,33 @@ const AblyChatComponent = (props) => {
   
   const sendChatMessage = (messageText) => {
     channel.publish({ name: 'chat-message', data: messageText });
+    publishTyping('stop');
     setMessageText('');
     if (inputBoxRef.current) inputBoxRef.current.focus();
+  };
+
+  // Human-readable typing label: "Alice is typing", "Alice and Bob are typing",
+  // "3 people are typing". Derived from the typingUsers Map; recomputed only
+  // when the set of active typers changes.
+  const typingLabel = React.useMemo(() => {
+    const ids = Array.from(typingUsers.keys());
+    if (ids.length === 0) return '';
+    const names = ids.map((id) => parseClientId(id).display);
+    if (names.length === 1) return `${names[0]} is typing`;
+    if (names.length === 2) return `${names[0]} and ${names[1]} are typing`;
+    return `${names.length} people are typing`;
+  }, [typingUsers]);
+
+  // Throttled "I am typing" notifier. Called on every input change; the
+  // throttle inside `publishTyping` keeps actual publishes to ~1 per 2s.
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setMessageText(value);
+    if (value.trim().length > 0) {
+      publishTyping('start');
+    } else {
+      publishTyping('stop');
+    }
   };
 
   // Insert the picked emoji at the current caret position (or append if the
@@ -329,7 +403,7 @@ const AblyChatComponent = (props) => {
           <div className="grid grid-rows-[1fr_auto]">
             <div
               ref={messagesContainerRef}
-              className="flex flex-col gap-4 p-6 h-[calc(100dvh-220px)] lg:h-[calc(100dvh-160px)] overflow-y-auto overscroll-contain bg-[color:var(--bg)]/40"
+              className="flex flex-col gap-4 p-6 h-[calc(100dvh-250px)] lg:h-[calc(100dvh-190px)] overflow-y-auto overscroll-contain bg-[color:var(--bg)]/40"
             >
               {props.currentUserWalletAddress !== 'Connect your wallet' &&
                 receivedMessages.map((message, index) => {
@@ -393,13 +467,27 @@ const AblyChatComponent = (props) => {
             {/* Message Input */}
             {props.currentUserWalletAddress !== 'Connect your wallet' && (
               <form onSubmit={handleFormSubmission} className="p-4 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
+                {/* Typing indicator: rendered with reserved height so the
+                    input row never jumps when someone starts/stops typing. */}
+                <div className="h-5 mb-1 px-2 text-xs text-[color:var(--text-muted)] flex items-center gap-1.5" aria-live="polite">
+                  {typingLabel && (
+                    <>
+                      <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+                        <span className="w-1 h-1 rounded-full bg-[color:var(--text-muted)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-[color:var(--text-muted)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-[color:var(--text-muted)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                      <span className="truncate">{typingLabel}</span>
+                    </>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <input
                     ref={inputBoxRef}
                     type="text"
                     value={messageText}
                     placeholder="Type your message..."
-                    onChange={(e) => setMessageText(e.target.value)}
+                    onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
                     // text-base == 16px: prevents iOS Safari from auto-zooming
                     // into the input on focus (which triggers a layout shift).
