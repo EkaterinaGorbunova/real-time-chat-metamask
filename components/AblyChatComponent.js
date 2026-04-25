@@ -4,6 +4,7 @@ import { usePresence, assertConfiguration } from "@ably-labs/react-hooks";
 import EmojiPicker from './EmojiPicker';
 import Avatar from './Avatar';
 import { useEnsName } from '../lib/ens';
+import { getChainInfo, normalizeChainId } from '../lib/chains';
 
 // Resolve the Ably clientId from either a connected wallet or a stored guest session.
 // Prefixes let the chat UI distinguish wallet users from guests.
@@ -99,6 +100,55 @@ const WalletName = ({ address, fallback, className }) => {
     >
       {ens || fallback}
     </a>
+  );
+};
+
+// Reads the connected wallet's chainId synchronously on mount and listens
+// for `chainChanged` events so the badge updates when the user switches
+// network in MetaMask. Returns null for guest sessions or when the
+// provider has not yet exposed a chainId.
+const useChainId = () => {
+  const [chainId, setChainId] = React.useState(() => {
+    if (typeof window === 'undefined' || !window.ethereum) return null;
+    return window.ethereum.chainId || null;
+  });
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !window.ethereum) return undefined;
+    const handler = (newId) => setChainId(newId || null);
+    if (typeof window.ethereum.on === 'function') {
+      window.ethereum.on('chainChanged', handler);
+    }
+    // Some wallets populate chainId after injection; sync once on mount.
+    if (window.ethereum.chainId) setChainId(window.ethereum.chainId);
+    return () => {
+      if (window.ethereum && typeof window.ethereum.removeListener === 'function') {
+        window.ethereum.removeListener('chainChanged', handler);
+      }
+    };
+  }, []);
+  return chainId;
+};
+
+// Tiny pill that visualizes which EVM network a wallet user is on. Color +
+// short label come from the lib/chains table; falls back to a neutral
+// "Chain 0x…" pill for unknown chainIds so users still get a signal.
+const ChainBadge = ({ chainId }) => {
+  const info = getChainInfo(chainId);
+  if (!info) return null;
+  return (
+    <span
+      data-testid="chain-badge"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+      style={{
+        background: `${info.color}22`,
+        color: info.color,
+        border: `1px solid ${info.color}55`,
+      }}
+      title={`Connected to ${info.name}`}
+    >
+      <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full" style={{ background: info.color }} />
+      {info.short}
+    </span>
   );
 };
 
@@ -390,7 +440,23 @@ const AblyChatComponent = (props) => {
     try { typingChannel.publish(kind, ''); } catch (e) { /* best-effort */ }
   }, [typingChannel]);
 
-  const [presenceData] = usePresence("headlines");
+  // Track the local wallet's chain so we can both render our own badge and
+  // broadcast it to the room via presence data. Empty string for guests so
+  // the presence payload stays well-defined.
+  const localChainId = useChainId();
+  const initialPresencePayloadRef = React.useRef(normalizeChainId(localChainId) || '');
+  const [presenceData, updatePresence] = usePresence("headlines", initialPresencePayloadRef.current);
+  // Mirror later chain switches into presence so other clients see the
+  // updated badge without a reload. Skip the first identical value to avoid
+  // an immediate redundant `update` right after `enter`.
+  const lastSentChainRef = React.useRef(initialPresencePayloadRef.current);
+  React.useEffect(() => {
+    if (!updatePresence) return;
+    const next = normalizeChainId(localChainId) || '';
+    if (next === lastSentChainRef.current) return;
+    lastSentChainRef.current = next;
+    try { updatePresence(next); } catch (e) { /* best-effort */ }
+  }, [localChainId, updatePresence]);
 
   // Derive Discord-style join/leave system messages by diffing successive
   // `presenceData` snapshots. A subscribe-based approach would miss the
@@ -471,12 +537,19 @@ const AblyChatComponent = (props) => {
 
     // Deduplicate presence by clientId so a user opening the chat in multiple
     // tabs or devices appears as a single member (same identity = same entry).
+    // When several tabs from the same identity exist, prefer the entry that
+    // carries non-empty presence data (the chain badge) so the sidebar shows
+    // the network even if one of the tabs joined before the chainId was known.
     const uniquePresence = React.useMemo(() => {
       const seen = new Map();
       (presenceData || []).forEach((member) => {
-        if (member && member.clientId && !seen.has(member.clientId)) {
+        if (!member || !member.clientId) return;
+        const existing = seen.get(member.clientId);
+        if (!existing) {
           seen.set(member.clientId, member);
+          return;
         }
+        if (!existing.data && member.data) seen.set(member.clientId, member);
       });
       return Array.from(seen.values());
     }, [presenceData]);
@@ -507,11 +580,17 @@ const AblyChatComponent = (props) => {
     const presenceList = uniquePresence.map((member, index) => {
       const isItMe = member.clientId === ably.auth.clientId;
       const { display, type, address } = parseClientId(member.clientId);
+      // Prefer the locally-known chainId for self (more up-to-date than the
+      // round-tripped presence value); for everyone else, read from their
+      // presence payload. Only wallet users get a badge.
+      const memberChainId = type === 'wallet'
+        ? (isItMe ? localChainId : (member.data || null))
+        : null;
 
       return (
         <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
-          <div className="text-[color:var(--text)] text-sm flex items-center justify-between">
-            <span className="truncate flex items-center gap-1.5">
+          <div className="text-[color:var(--text)] text-sm flex items-center justify-between gap-2">
+            <span className="truncate flex items-center gap-1.5 min-w-0">
               <Avatar type={type} address={address} nickname={display} size={20} />
               {type === 'wallet' ? (
                 <WalletName address={address} fallback={display} className="truncate" />
@@ -523,6 +602,7 @@ const AblyChatComponent = (props) => {
               )}
               {isItMe && <span className="text-[color:var(--accent)] text-xs ml-1">(me)</span>}
             </span>
+            {memberChainId && <ChainBadge chainId={memberChainId} />}
           </div>
         </div>
       );
