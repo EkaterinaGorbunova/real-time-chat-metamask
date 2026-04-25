@@ -746,23 +746,32 @@ const AblyChatComponent = (props) => {
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {memberChainId && <ChainBadge chainId={memberChainId} />}
               {showTip && (
-                <button
-                  type="button"
-                  data-testid="tip-button"
-                  data-tip-disabled={canTip ? undefined : 'true'}
-                  onClick={canTip ? () => setTipTarget({ address, label: display }) : undefined}
-                  disabled={!canTip}
-                  title={canTip ? `Send a tip to ${display}` : 'Connect wallet to tip'}
-                  aria-label={canTip ? `Send a tip to ${display}` : 'Connect wallet to tip'}
-                  className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border ${
-                    canTip
-                      ? 'border-[color:var(--border)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] text-[color:var(--text-muted)]'
-                      : 'border-[color:var(--border)] text-[color:var(--text-subtle)] opacity-60 cursor-not-allowed'
-                  }`}
-                >
-                  <span aria-hidden="true">💸</span>
-                  <span>Tip</span>
-                </button>
+                <span className="relative group/tip">
+                  <button
+                    type="button"
+                    data-testid="tip-button"
+                    data-tip-disabled={canTip ? undefined : 'true'}
+                    onClick={canTip ? () => setTipTarget({ address, label: display }) : undefined}
+                    disabled={!canTip}
+                    aria-label={canTip ? `Send a tip to ${display}` : 'Connect wallet to tip'}
+                    className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border ${
+                      canTip
+                        ? 'border-[color:var(--border)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] text-[color:var(--text-muted)]'
+                        : 'border-[color:var(--border)] text-[color:var(--text-subtle)] opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <span aria-hidden="true">💸</span>
+                    <span>Tip</span>
+                  </button>
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute top-full right-0 mt-1 px-2 py-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface)] text-[10px] leading-tight text-[color:var(--text)] whitespace-nowrap shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity z-20"
+                  >
+                    {canTip
+                      ? `Send ETH tip to ${display}`
+                      : 'Send ETH tip — connect a wallet to enable'}
+                  </span>
+                </span>
               )}
             </div>
           </div>
