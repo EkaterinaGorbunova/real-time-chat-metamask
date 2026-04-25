@@ -39,3 +39,6 @@ yarn-error.log*
 .vercel
 
 development.md
+
+# transient PR body drafts created during automated migrations
+.pr-body-*.md

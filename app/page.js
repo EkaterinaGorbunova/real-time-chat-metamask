@@ -1,5 +1,6 @@
+'use client';
+
 import React from 'react';
-import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import ButtonConnectWallet from '../components/ButtonConnectWallet';
 import WalletIsNotConnected from '../components/WalletIsNotConnected';
@@ -88,7 +89,6 @@ export default function Home() {
 
     // Reset data when MetaMask disconnects
     window.ethereum.on('accountsChanged', async () => {
-      // console.log('accountsChanged event');
       localStorage.clear();
       setUserAccount((prev) => {
         return {
@@ -107,7 +107,7 @@ export default function Home() {
       typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
     if (isBrowserWithMetamask) {
       try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const provider = new ethers.BrowserProvider(window.ethereum);
         const network = await provider.getNetwork();
         const [currentWalletAddress] = await window.ethereum.request({
           method: 'eth_requestAccounts',
@@ -204,16 +204,6 @@ export default function Home() {
 
   return (
     <>
-      <Head>
-        <title>Chat</title>
-        <link rel='icon' href='/favicon.ico' />
-        <meta name="description" content="real-time Chat with Metamask" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
-        />
-      </Head>
-
       <ButtonConnectWallet
         connect={userAccount.connectButtonName}
         userType={userAccount.userType}
