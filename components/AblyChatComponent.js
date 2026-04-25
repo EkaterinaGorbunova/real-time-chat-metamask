@@ -34,6 +34,28 @@ const parseClientId = (clientId) => {
   return { type: 'wallet', display, icon: '💎' };
 };
 
+// Discord-style system messages for join/leave. Each client renders these
+// locally in response to presence events on the chat's presence channel, so
+// no server-side broadcast or message publish is required.
+const JOIN_EMOJIS = ['👋', '🎉', '✨', '🚀', '🌟', '💫', '🪩', '🥳', '🤝', '🌈'];
+const LEAVE_EMOJIS = ['👋', '🚪', '💨', '🌙', '✌️', '🫡', '😢', '🌅'];
+const JOIN_TEMPLATES = [
+  '%s joined the chat',
+  '%s just dropped in',
+  'Look who showed up – %s',
+  '%s is here!',
+  'Say hi to %s',
+  'A wild %s appeared',
+];
+const LEAVE_TEMPLATES = [
+  '%s left the chat',
+  '%s waved goodbye',
+  '%s logged off',
+  '%s slipped away',
+  '%s has left the building',
+];
+const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
 const AblyChatComponent = (props) => {
   const inputBoxRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
@@ -63,6 +85,55 @@ const AblyChatComponent = (props) => {
   });
 
   const [presenceData] = usePresence("headlines");
+
+  // Derive Discord-style join/leave system messages by diffing successive
+  // `presenceData` snapshots. A subscribe-based approach would miss the
+  // local user's own enter event (usePresence calls enter() before our
+  // subscription is set up) and would not see members that were already
+  // present when we joined. The snapshot diff is reliable in both cases.
+  const previousPresenceRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!presenceData || !ably || !ably.auth) return;
+    const myClientId = ably.auth.clientId;
+    const currentIds = new Set();
+    (presenceData || []).forEach((m) => {
+      if (m && m.clientId) currentIds.add(m.clientId);
+    });
+    const previous = previousPresenceRef.current;
+    const emit = (kind, clientId) => {
+      const { display } = parseClientId(clientId);
+      const isJoin = kind === 'join';
+      const text = (isJoin ? pickRandom(JOIN_TEMPLATES) : pickRandom(LEAVE_TEMPLATES)).replace('%s', display);
+      setMessages((history) => [
+        ...history.slice(-199),
+        {
+          id: `sys-${kind}-${clientId}-${Date.now()}-${Math.random()}`,
+          system: true,
+          kind,
+          emoji: isJoin ? pickRandom(JOIN_EMOJIS) : pickRandom(LEAVE_EMOJIS),
+          text,
+        },
+      ]);
+    };
+    // Treat the first transition into a populated snapshot as the initial
+    // sync: announce only the local user (others were already there long
+    // before we arrived). Subsequent diffs announce every change.
+    const isInitialSync =
+      previous === null || (previous.size === 0 && currentIds.has(myClientId));
+    if (isInitialSync) {
+      if (myClientId && currentIds.has(myClientId)) {
+        emit('join', myClientId);
+      }
+    } else {
+      currentIds.forEach((id) => {
+        if (!previous.has(id)) emit('join', id);
+      });
+      previous.forEach((id) => {
+        if (!currentIds.has(id)) emit('leave', id);
+      });
+    }
+    previousPresenceRef.current = currentIds;
+  }, [presenceData, ably]);
 
   // Expose an imperative cleanup so the parent can explicitly leave presence
   // and close the Ably connection before reloading on logout. Without this,
@@ -246,6 +317,16 @@ const AblyChatComponent = (props) => {
             >
               {props.currentUserWalletAddress !== 'Connect your wallet' &&
                 receivedMessages.map((message, index) => {
+                  if (message.system) {
+                    return (
+                      <div key={message.id || index} className="flex justify-center w-full">
+                        <div className="px-3 py-1.5 text-xs text-[color:var(--text-muted)] rounded-full bg-[color:var(--surface-muted)]/60 border border-[color:var(--border)] flex items-center gap-1.5 max-w-[90%]">
+                          <span aria-hidden="true">{message.emoji}</span>
+                          <span className="truncate">{message.text}</span>
+                        </div>
+                      </div>
+                    );
+                  }
                   const isMe = message.clientId === ably.auth.clientId;
                   const { display, icon, type } = parseClientId(message.clientId);
                   return (
