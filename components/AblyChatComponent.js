@@ -368,7 +368,13 @@ const AblyChatComponent = (props) => {
                             </span>
                             <span
                               role="tooltip"
-                              className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded-md whitespace-nowrap text-xs bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text)] shadow-md opacity-0 group-hover/ts:opacity-100 transition-opacity z-10"
+                              // Anchor tooltip to the message side so it never
+                              // overflows the chat container (which clips with
+                              // overflow-y-auto): own messages are right-aligned,
+                              // so we anchor by the right edge; others by the left.
+                              className={`pointer-events-none absolute bottom-full mb-1 px-2 py-1 rounded-md whitespace-nowrap text-xs bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text)] shadow-md opacity-0 group-hover/ts:opacity-100 transition-opacity z-10 ${
+                                isMe ? 'right-0' : 'left-0'
+                              }`}
                             >
                               {formatFullDate(message.timestamp)}
                             </span>
