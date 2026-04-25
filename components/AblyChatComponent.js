@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { configureAbly, useChannel } from '@ably-labs/react-hooks';
 import { usePresence, assertConfiguration } from "@ably-labs/react-hooks";
+import EmojiPicker from './EmojiPicker';
 
 // Resolve the Ably clientId from either a connected wallet or a stored guest session.
 // Prefixes let the chat UI distinguish wallet users from guests.
@@ -34,7 +35,7 @@ const parseClientId = (clientId) => {
 };
 
 const AblyChatComponent = (props) => {
-  let inputBox = null;
+  const inputBoxRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
   const messagesContainerRef = React.useRef(null);
 
@@ -149,7 +150,33 @@ const AblyChatComponent = (props) => {
   const sendChatMessage = (messageText) => {
     channel.publish({ name: 'chat-message', data: messageText });
     setMessageText('');
-    inputBox.focus();
+    if (inputBoxRef.current) inputBoxRef.current.focus();
+  };
+
+  // Insert the picked emoji at the current caret position (or append if the
+  // input is not focused). Restores selection so the caret stays right after
+  // the inserted character, which feels more natural when picking several.
+  const insertEmoji = (emoji) => {
+    const input = inputBoxRef.current;
+    if (!input) {
+      setMessageText((value) => value + emoji);
+      return;
+    }
+    const start = typeof input.selectionStart === 'number' ? input.selectionStart : messageText.length;
+    const end = typeof input.selectionEnd === 'number' ? input.selectionEnd : messageText.length;
+    const next = messageText.slice(0, start) + emoji + messageText.slice(end);
+    setMessageText(next);
+    const caret = start + emoji.length;
+    requestAnimationFrame(() => {
+      if (inputBoxRef.current) {
+        inputBoxRef.current.focus();
+        try {
+          inputBoxRef.current.setSelectionRange(caret, caret);
+        } catch (e) {
+          // some input types do not support setSelectionRange; ignore
+        }
+      }
+    });
   };
 
   const handleFormSubmission = (event) => {
@@ -254,7 +281,7 @@ const AblyChatComponent = (props) => {
               <form onSubmit={handleFormSubmission} className="p-4 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
                 <div className="flex items-center gap-2">
                   <input
-                    ref={(element) => { inputBox = element; }}
+                    ref={inputBoxRef}
                     type="text"
                     value={messageText}
                     placeholder="Type your message..."
@@ -262,8 +289,9 @@ const AblyChatComponent = (props) => {
                     onKeyPress={handleKeyPress}
                     // text-base == 16px: prevents iOS Safari from auto-zooming
                     // into the input on focus (which triggers a layout shift).
-                    className="flex-1 px-4 py-2.5 text-base bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-full focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
+                    className="flex-1 min-w-0 px-4 py-2.5 text-base bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-full focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
                   />
+                  <EmojiPicker onSelect={insertEmoji} />
                   <button
                     type="submit"
                     disabled={messageTextIsEmpty}
