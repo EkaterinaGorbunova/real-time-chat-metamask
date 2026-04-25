@@ -57,7 +57,7 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
               <button
                 type="button"
                 onClick={handleConnectWallet}
-                className="w-full px-6 py-2.5 rounded-lg bg-[color:var(--accent)] hover:bg-[color:var(--accent-hover)] text-white font-medium transition-all shadow-glow-sm hover:shadow-glow"
+                className="w-full px-6 py-2.5 rounded-lg bg-[color:var(--accent)] hover:bg-[color:var(--accent-hover)] text-white font-medium whitespace-nowrap transition-all shadow-glow-sm hover:shadow-glow"
               >
                 Connect Wallet
               </button>
@@ -94,7 +94,7 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
                 <button
                   type="submit"
                   disabled={!isValid}
-                  className="px-6 py-2.5 rounded-lg bg-[color:var(--accent)] hover:bg-[color:var(--accent-hover)] text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
+                  className="flex-shrink-0 px-6 py-2.5 rounded-lg bg-[color:var(--accent)] hover:bg-[color:var(--accent-hover)] text-white font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
                 >
                   Join as Guest
                 </button>
