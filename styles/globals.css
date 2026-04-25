@@ -51,6 +51,14 @@ body {
      the dark class was applied. The theme toggle still feels instant. */
 }
 
+/* Ensure the gradient backdrop always covers the full viewport. Without
+   this, short pages (login screen) leave a visible horizontal seam below
+   the body where only the flat html background-color shows through. */
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* Layered gradient backdrop: violet top-left, cyan bottom-right, deep
    indigo wash in the middle. Gives the dark theme a bluish, modern
    "Web3" feel without overpowering content. */
