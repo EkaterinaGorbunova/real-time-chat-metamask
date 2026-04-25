@@ -86,75 +86,54 @@ const AblyChatComponent = (props) => {
 
   const [presenceData] = usePresence("headlines");
 
-  // Track recent join/leave events per clientId so opening a second tab (or
-  // a brief reconnect) does not produce duplicate system messages within a
-  // short window. Entries expire after `ttlMs` on the next call.
-  const recentSystemEventsRef = React.useRef(new Map());
-  const recordSystemEvent = (key, ttlMs = 5000) => {
-    const map = recentSystemEventsRef.current;
-    const now = Date.now();
-    for (const [k, t] of map) {
-      if (now - t > ttlMs) map.delete(k);
-    }
-    if (map.has(key)) return false;
-    map.set(key, now);
-    return true;
-  };
-
-  // Subscribe to presence enter/leave on the same channel everyone enters
-  // (`headlines`) and inject a Discord-style system message into the chat
-  // history. Each client computes its own copy locally; nothing is published.
+  // Derive Discord-style join/leave system messages by diffing successive
+  // `presenceData` snapshots. A subscribe-based approach would miss the
+  // local user's own enter event (usePresence calls enter() before our
+  // subscription is set up) and would not see members that were already
+  // present when we joined. The snapshot diff is reliable in both cases.
+  const previousPresenceRef = React.useRef(null);
   React.useEffect(() => {
-    if (!ably || !ably.channels) return;
-    const headlines = ably.channels.get('headlines');
-    if (!headlines || !headlines.presence) return;
-
-    const handleEnter = (member) => {
-      if (!member || !member.clientId) return;
-      if (!recordSystemEvent(`enter:${member.clientId}`)) return;
-      const { display } = parseClientId(member.clientId);
-      const text = pickRandom(JOIN_TEMPLATES).replace('%s', display);
+    if (!presenceData || !ably || !ably.auth) return;
+    const myClientId = ably.auth.clientId;
+    const currentIds = new Set();
+    (presenceData || []).forEach((m) => {
+      if (m && m.clientId) currentIds.add(m.clientId);
+    });
+    const previous = previousPresenceRef.current;
+    const emit = (kind, clientId) => {
+      const { display } = parseClientId(clientId);
+      const isJoin = kind === 'join';
+      const text = (isJoin ? pickRandom(JOIN_TEMPLATES) : pickRandom(LEAVE_TEMPLATES)).replace('%s', display);
       setMessages((history) => [
         ...history.slice(-199),
         {
-          id: `sys-enter-${member.clientId}-${Date.now()}-${Math.random()}`,
+          id: `sys-${kind}-${clientId}-${Date.now()}-${Math.random()}`,
           system: true,
-          kind: 'join',
-          emoji: pickRandom(JOIN_EMOJIS),
+          kind,
+          emoji: isJoin ? pickRandom(JOIN_EMOJIS) : pickRandom(LEAVE_EMOJIS),
           text,
         },
       ]);
     };
-
-    const handleLeave = (member) => {
-      if (!member || !member.clientId) return;
-      if (!recordSystemEvent(`leave:${member.clientId}`)) return;
-      const { display } = parseClientId(member.clientId);
-      const text = pickRandom(LEAVE_TEMPLATES).replace('%s', display);
-      setMessages((history) => [
-        ...history.slice(-199),
-        {
-          id: `sys-leave-${member.clientId}-${Date.now()}-${Math.random()}`,
-          system: true,
-          kind: 'leave',
-          emoji: pickRandom(LEAVE_EMOJIS),
-          text,
-        },
-      ]);
-    };
-
-    headlines.presence.subscribe('enter', handleEnter);
-    headlines.presence.subscribe('leave', handleLeave);
-
-    return () => {
-      try {
-        headlines.presence.unsubscribe('enter', handleEnter);
-        headlines.presence.unsubscribe('leave', handleLeave);
-      } catch (e) {
-        // best-effort
+    // Treat the first transition into a populated snapshot as the initial
+    // sync: announce only the local user (others were already there long
+    // before we arrived). Subsequent diffs announce every change.
+    const isInitialSync =
+      previous === null || (previous.size === 0 && currentIds.has(myClientId));
+    if (isInitialSync) {
+      if (myClientId && currentIds.has(myClientId)) {
+        emit('join', myClientId);
       }
-    };
-  }, [ably]);
+    } else {
+      currentIds.forEach((id) => {
+        if (!previous.has(id)) emit('join', id);
+      });
+      previous.forEach((id) => {
+        if (!currentIds.has(id)) emit('leave', id);
+      });
+    }
+    previousPresenceRef.current = currentIds;
+  }, [presenceData, ably]);
 
   // Expose an imperative cleanup so the parent can explicitly leave presence
   // and close the Ably connection before reloading on logout. Without this,
