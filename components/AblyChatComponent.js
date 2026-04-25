@@ -38,11 +38,26 @@ const parseClientId = (clientId) => {
 };
 
 // Renders an ENS name when one is cached/resolved for the address, otherwise
-// falls back to the short 0x… form. Used in both the member sidebar and the
-// message author label so the visual treatment stays consistent.
+// falls back to the short 0x… form. The label is wrapped in an Etherscan
+// link so users can jump to the on-chain history of any participant in the
+// chat. Always shows the raw address in the tooltip (regardless of ENS) so
+// the destination of the link is unambiguous on hover.
 const WalletName = ({ address, fallback, className }) => {
   const ens = useEnsName(address);
-  return <span className={className} title={ens ? address : undefined}>{ens || fallback}</span>;
+  if (!address) {
+    return <span className={className}>{ens || fallback}</span>;
+  }
+  return (
+    <a
+      href={`https://etherscan.io/address/${address}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`View ${address} on Etherscan`}
+      className={`hover:underline hover:text-[color:var(--accent)] transition-colors ${className || ''}`}
+    >
+      {ens || fallback}
+    </a>
+  );
 };
 
 // Discord-style system messages for join/leave. Each client renders these
