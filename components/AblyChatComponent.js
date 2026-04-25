@@ -34,6 +34,28 @@ const parseClientId = (clientId) => {
   return { type: 'wallet', display, icon: '💎' };
 };
 
+// Discord-style system messages for join/leave. Each client renders these
+// locally in response to presence events on the chat's presence channel, so
+// no server-side broadcast or message publish is required.
+const JOIN_EMOJIS = ['👋', '🎉', '✨', '🚀', '🌟', '💫', '🪩', '🥳', '🤝', '🌈'];
+const LEAVE_EMOJIS = ['👋', '🚪', '💨', '🌙', '✌️', '🫡', '😢', '🌅'];
+const JOIN_TEMPLATES = [
+  '%s joined the chat',
+  '%s just dropped in',
+  'Look who showed up — %s',
+  '%s is here!',
+  'Say hi to %s',
+  'A wild %s appeared',
+];
+const LEAVE_TEMPLATES = [
+  '%s left the chat',
+  '%s waved goodbye',
+  '%s logged off',
+  '%s slipped away',
+  '%s has left the building',
+];
+const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
 const AblyChatComponent = (props) => {
   const inputBoxRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
@@ -63,6 +85,82 @@ const AblyChatComponent = (props) => {
   });
 
   const [presenceData] = usePresence("headlines");
+
+  // Track recent join/leave events per clientId so opening a second tab (or
+  // a brief reconnect) does not produce duplicate system messages within a
+  // short window. Entries expire after `ttlMs` on the next call.
+  const recentSystemEventsRef = React.useRef(new Map());
+  const recordSystemEvent = (key, ttlMs = 5000) => {
+    const map = recentSystemEventsRef.current;
+    const now = Date.now();
+    for (const [k, t] of map) {
+      if (now - t > ttlMs) map.delete(k);
+    }
+    if (map.has(key)) return false;
+    map.set(key, now);
+    return true;
+  };
+
+  // Subscribe to presence enter/leave on the same channel everyone enters
+  // (`headlines`) and inject a Discord-style system message into the chat
+  // history. Each client computes its own copy locally; nothing is published.
+  React.useEffect(() => {
+    if (!ably || !ably.channels) return;
+    const headlines = ably.channels.get('headlines');
+    if (!headlines || !headlines.presence) return;
+
+    const handleEnter = (member) => {
+      if (!member || !member.clientId) return;
+      if (!recordSystemEvent(`enter:${member.clientId}`)) return;
+      const isMe = member.clientId === ably.auth.clientId;
+      const { display } = parseClientId(member.clientId);
+      const text = isMe
+        ? 'You joined the chat'
+        : pickRandom(JOIN_TEMPLATES).replace('%s', display);
+      setMessages((history) => [
+        ...history.slice(-199),
+        {
+          id: `sys-enter-${member.clientId}-${Date.now()}-${Math.random()}`,
+          system: true,
+          kind: 'join',
+          emoji: pickRandom(JOIN_EMOJIS),
+          text,
+        },
+      ]);
+    };
+
+    const handleLeave = (member) => {
+      if (!member || !member.clientId) return;
+      if (!recordSystemEvent(`leave:${member.clientId}`)) return;
+      const isMe = member.clientId === ably.auth.clientId;
+      const { display } = parseClientId(member.clientId);
+      const text = isMe
+        ? 'You left the chat'
+        : pickRandom(LEAVE_TEMPLATES).replace('%s', display);
+      setMessages((history) => [
+        ...history.slice(-199),
+        {
+          id: `sys-leave-${member.clientId}-${Date.now()}-${Math.random()}`,
+          system: true,
+          kind: 'leave',
+          emoji: pickRandom(LEAVE_EMOJIS),
+          text,
+        },
+      ]);
+    };
+
+    headlines.presence.subscribe('enter', handleEnter);
+    headlines.presence.subscribe('leave', handleLeave);
+
+    return () => {
+      try {
+        headlines.presence.unsubscribe('enter', handleEnter);
+        headlines.presence.unsubscribe('leave', handleLeave);
+      } catch (e) {
+        // best-effort
+      }
+    };
+  }, [ably]);
 
   // Expose an imperative cleanup so the parent can explicitly leave presence
   // and close the Ably connection before reloading on logout. Without this,
@@ -246,6 +344,16 @@ const AblyChatComponent = (props) => {
             >
               {props.currentUserWalletAddress !== 'Connect your wallet' &&
                 receivedMessages.map((message, index) => {
+                  if (message.system) {
+                    return (
+                      <div key={message.id || index} className="flex justify-center w-full">
+                        <div className="px-3 py-1.5 text-xs text-[color:var(--text-muted)] rounded-full bg-[color:var(--surface-muted)]/60 border border-[color:var(--border)] flex items-center gap-1.5 max-w-[90%]">
+                          <span aria-hidden="true">{message.emoji}</span>
+                          <span className="truncate">{message.text}</span>
+                        </div>
+                      </div>
+                    );
+                  }
                   const isMe = message.clientId === ably.auth.clientId;
                   const { display, icon, type } = parseClientId(message.clientId);
                   return (
