@@ -750,9 +750,10 @@ const AblyChatComponent = (props) => {
                   onClick={() => setTipTarget({ address, label: display })}
                   title={`Send a tip to ${display}`}
                   aria-label={`Send a tip to ${display}`}
-                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-xs px-1.5 py-0.5 rounded-md border border-[color:var(--border)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] text-[color:var(--text-muted)]"
+                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-[color:var(--border)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] text-[color:var(--text-muted)]"
                 >
-                  💸
+                  <span aria-hidden="true">💸</span>
+                  <span>Tip</span>
                 </button>
               )}
             </div>
