@@ -56,6 +56,21 @@ const LEAVE_TEMPLATES = [
 ];
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+// HH:MM in the user's locale (24h). Ably messages carry a server-set
+// `timestamp` (ms epoch); we fall back to `Date.now()` for safety in case a
+// locally-injected message ever lacks one.
+const formatShortTime = (ts) => {
+  const d = new Date(ts || Date.now());
+  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+};
+const formatFullDate = (ts) => {
+  const d = new Date(ts || Date.now());
+  return d.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+};
+
 const AblyChatComponent = (props) => {
   const inputBoxRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
@@ -346,6 +361,12 @@ const AblyChatComponent = (props) => {
                               {type === 'guest' && <span className="opacity-75">(guest)</span>}
                             </>
                           )}
+                          <span
+                            className="ml-1 opacity-70 cursor-help tabular-nums"
+                            title={formatFullDate(message.timestamp)}
+                          >
+                            {formatShortTime(message.timestamp)}
+                          </span>
                         </div>
                         <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
                           {message.data}
