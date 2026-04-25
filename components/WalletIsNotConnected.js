@@ -46,7 +46,7 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
         </div>
 
         <div className="flex flex-col md:flex-row md:items-stretch gap-6">
-          <div className="card-neon flex-1 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col hover:border-[color:var(--accent)]/50">
+          <div className="card-neon flex-1 min-w-0 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col hover:border-[color:var(--accent)]/50">
             <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/60 to-transparent" />
             <div className="text-5xl mb-3" aria-hidden="true">💎</div>
             <h2 className="text-2xl font-semibold tracking-tight text-[color:var(--text)] mb-2">Connect Your Wallet</h2>
@@ -73,7 +73,7 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
             <div className="flex-1 h-px bg-[color:var(--border)]" />
           </div>
 
-          <div className="card-neon flex-1 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col hover:border-[color:var(--accent)]/50">
+          <div className="card-neon flex-1 min-w-0 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col hover:border-[color:var(--accent)]/50">
             <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/60 to-transparent" />
             <div className="text-5xl mb-3" aria-hidden="true">👤</div>
             <h2 className="text-2xl font-semibold tracking-tight text-[color:var(--text)] mb-2">Continue as Guest</h2>
@@ -89,7 +89,7 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
                   maxLength={MAX_NICKNAME_LENGTH}
                   placeholder="Your nickname"
                   aria-label="Guest nickname"
-                  className="flex-1 px-4 py-2.5 text-base bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-lg focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
+                  className="flex-1 min-w-0 px-4 py-2.5 text-base bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-lg focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
                 />
                 <button
                   type="submit"
