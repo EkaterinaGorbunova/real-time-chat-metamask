@@ -427,11 +427,24 @@ const AblyChatComponent = (props) => {
 
   const [channel, ably] = useChannel('chatroom', (message) => {
     try {
-      // Defense in depth: re-sanitize incoming text and drop messages that
-      // collapse to empty after sanitization (zero-width spam, control chars).
-      const cleaned = sanitizeMessage(message && message.data);
+      // The publish payload is either a plain string (legacy / no-reply) or an
+      // object { text, replyTo } when the sender attached a quote. Normalize
+      // both shapes here so the rest of the UI can keep treating `data` as a
+      // sanitized string and read replyTo as a separate field.
+      const raw = message && message.data;
+      const isObject = raw && typeof raw === 'object';
+      const textRaw = isObject ? raw.text : raw;
+      const cleaned = sanitizeMessage(textRaw);
       if (!cleaned) return;
-      const safeMessage = { ...message, data: cleaned };
+      let replyTo = null;
+      if (isObject && raw.replyTo) {
+        const r = raw.replyTo;
+        const quoteText = sanitizeMessage(r.text);
+        if (quoteText && r.id && r.clientId) {
+          replyTo = { id: r.id, clientId: r.clientId, text: quoteText.slice(0, 240) };
+        }
+      }
+      const safeMessage = { ...message, data: cleaned, replyTo };
       setMessages((history) => [...history.slice(-199), safeMessage]);
     } catch (error) {
       if (error.statusCode === 410) {
@@ -441,6 +454,10 @@ const AblyChatComponent = (props) => {
       }
     }
   });
+
+  // Reply target: when set, the next sent message attaches a quote pointing to
+  // this message. Cleared after send or via the explicit cancel button.
+  const [replyingTo, setReplyingTo] = useState(null);
 
   // Typing indicator on a transient sibling channel: lightweight events
   // (start/stop) keyed by clientId. State is a Map of clientId -> expiry ms;
@@ -758,11 +775,31 @@ const AblyChatComponent = (props) => {
     }
     recent.push(now);
     recentSendsRef.current = recent;
-    channel.publish({ name: 'chat-message', data: cleaned });
+    // When replying, send `data` as an object `{ text, replyTo }` so the quote
+    // metadata travels with the message. Plain text otherwise — keeps the wire
+    // format backward-compatible with older clients (which see a string and
+    // simply ignore the unknown shape if any sneaks in).
+    const payload = replyingTo
+      ? { text: cleaned, replyTo: { id: replyingTo.id, clientId: replyingTo.clientId, text: replyingTo.text.slice(0, 240) } }
+      : cleaned;
+    channel.publish({ name: 'chat-message', data: payload });
     publishTyping('stop');
     setMessageText('');
+    setReplyingTo(null);
     if (inputBoxRef.current) inputBoxRef.current.focus();
   };
+
+  // Scroll the chat to the message with the given id and briefly flash its
+  // bubble so users can see where the quoted message lives. Used when the
+  // quote-block above an incoming message is clicked.
+  const scrollToMessage = React.useCallback((messageId) => {
+    if (!messageId || typeof document === 'undefined') return;
+    const el = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('reply-flash');
+    setTimeout(() => el.classList.remove('reply-flash'), 1200);
+  }, []);
 
   // Human-readable typing label: "Alice is typing", "Alice and Bob are typing",
   // "3 people are typing". Derived from the typingUsers Map; recomputed only
@@ -934,8 +971,10 @@ const AblyChatComponent = (props) => {
                   const myClientId = ably && ably.auth && ably.auth.clientId;
                   const messageReactions = (messageId && reactionsByMessage[messageId]) || {};
                   const reactionEntries = Object.entries(messageReactions);
+                  const replyMeta = message.replyTo || null;
+                  const replyAuthor = replyMeta ? parseClientId(replyMeta.clientId) : null;
                   return (
-                    <div key={message.id || index} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full group/msg`}>
+                    <div key={message.id || index} data-message-id={messageId || undefined} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full group/msg scroll-mt-4`}>
                       <div className={`max-w-[70%] break-words p-4 transition-colors relative ${
                         isMe
                           ? 'bg-[color:var(--accent)] text-white rounded-t-2xl rounded-l-2xl shadow-glow-sm'
@@ -973,6 +1012,27 @@ const AblyChatComponent = (props) => {
                             </span>
                           </span>
                         </div>
+                        {/* Quote block: shown above the body when this message
+                            replies to an earlier one. Click jumps to the original
+                            and briefly flashes it (CSS class `reply-flash`). */}
+                        {replyMeta && replyAuthor && (
+                          <button
+                            type="button"
+                            data-testid="reply-quote"
+                            onClick={() => scrollToMessage(replyMeta.id)}
+                            title="Jump to quoted message"
+                            className={`block text-left w-full mb-2 px-2 py-1.5 rounded-md border-l-2 text-xs transition-colors cursor-pointer ${
+                              isMe
+                                ? 'bg-white/10 border-white/60 text-white/90 hover:bg-white/15'
+                                : 'bg-[color:var(--surface)]/60 border-[color:var(--accent)] text-[color:var(--text-muted)] hover:bg-[color:var(--surface)]'
+                            }`}
+                          >
+                            <div className={`font-medium ${isMe ? 'opacity-90' : 'text-[color:var(--accent)]'}`}>
+                              {replyAuthor.display}
+                            </div>
+                            <div className="truncate opacity-80">{replyMeta.text}</div>
+                          </button>
+                        )}
                         <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
                           {renderMarkdown(message.data)}
                         </div>
@@ -1029,6 +1089,22 @@ const AblyChatComponent = (props) => {
                                 {emoji}
                               </button>
                             ))}
+                            {/* Divider + reply trigger sit in the same hover bar
+                                so all per-message actions live in one place. */}
+                            <span aria-hidden="true" className="w-px self-stretch bg-[color:var(--border)] mx-0.5" />
+                            <button
+                              type="button"
+                              data-testid="reply-button"
+                              onClick={() => {
+                                setReplyingTo({ id: messageId, clientId: message.clientId, text: message.data });
+                                if (inputBoxRef.current) inputBoxRef.current.focus();
+                              }}
+                              title="Reply to this message"
+                              aria-label="Reply"
+                              className="text-sm hover:scale-125 transition-transform leading-none px-1"
+                            >
+                              {'\u21A9'}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1041,6 +1117,33 @@ const AblyChatComponent = (props) => {
             {/* Message Input */}
             {props.currentUserWalletAddress !== 'Connect your wallet' && (
               <form onSubmit={handleFormSubmission} className="flex-shrink-0 p-4 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
+                {/* Reply-target preview: only rendered when the user has chosen
+                    to reply to a message. Shows the quoted author + snippet
+                    plus an explicit cancel so the user can back out before
+                    sending. */}
+                {replyingTo && (
+                  <div
+                    data-testid="reply-preview"
+                    className="mb-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-[color:var(--surface-muted)] border-l-2 border-[color:var(--accent)]"
+                  >
+                    <div className="flex-1 min-w-0 text-xs">
+                      <div className="text-[color:var(--accent)] font-medium">
+                        Replying to {parseClientId(replyingTo.clientId).display}
+                      </div>
+                      <div className="text-[color:var(--text-muted)] truncate">{replyingTo.text}</div>
+                    </div>
+                    <button
+                      type="button"
+                      data-testid="reply-cancel"
+                      onClick={() => setReplyingTo(null)}
+                      title="Cancel reply"
+                      aria-label="Cancel reply"
+                      className="text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors text-lg leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
                 {/* Typing indicator + char counter share the same reserved
                     row so the input never jumps. Counter only appears when the
                     user crosses the soft-warn threshold. */}
