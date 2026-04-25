@@ -72,6 +72,45 @@ const formatFullDate = (ts) => {
   });
 };
 
+// Linkify a plain-text message: splits the text on http(s) URLs and returns
+// an array of React nodes (strings + <a> elements). Never uses
+// dangerouslySetInnerHTML, so the message body cannot inject markup. The href
+// is double-checked with `new URL` and only http/https are accepted as a
+// defense-in-depth against javascript:/data: URIs sneaking in.
+const URL_REGEX = /(https?:\/\/[^\s<>"'`]+)/g;
+const TRAILING_PUNCT = /[.,!?;:)\]}'"]+$/;
+const linkifyText = (text) => {
+  if (typeof text !== 'string' || text.length === 0) return text;
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) => {
+    if (i % 2 === 0) return part;
+    const trailingMatch = part.match(TRAILING_PUNCT);
+    const trailing = trailingMatch ? trailingMatch[0] : '';
+    const url = trailing ? part.slice(0, -trailing.length) : part;
+    let safeHref = null;
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'http:' || u.protocol === 'https:') safeHref = u.href;
+    } catch (e) {
+      // malformed URL, render as plain text
+    }
+    if (!safeHref) return part;
+    return (
+      <React.Fragment key={i}>
+        <a
+          href={safeHref}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="underline underline-offset-2 hover:opacity-80 break-all"
+        >
+          {url}
+        </a>
+        {trailing}
+      </React.Fragment>
+    );
+  });
+};
+
 const AblyChatComponent = (props) => {
   const inputBoxRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
@@ -455,7 +494,7 @@ const AblyChatComponent = (props) => {
                           </span>
                         </div>
                         <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
-                          {message.data}
+                          {linkifyText(message.data)}
                         </div>
                       </div>
                     </div>
