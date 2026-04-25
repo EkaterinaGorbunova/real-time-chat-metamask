@@ -112,11 +112,8 @@ const AblyChatComponent = (props) => {
     const handleEnter = (member) => {
       if (!member || !member.clientId) return;
       if (!recordSystemEvent(`enter:${member.clientId}`)) return;
-      const isMe = member.clientId === ably.auth.clientId;
       const { display } = parseClientId(member.clientId);
-      const text = isMe
-        ? 'You joined the chat'
-        : pickRandom(JOIN_TEMPLATES).replace('%s', display);
+      const text = pickRandom(JOIN_TEMPLATES).replace('%s', display);
       setMessages((history) => [
         ...history.slice(-199),
         {
@@ -132,11 +129,8 @@ const AblyChatComponent = (props) => {
     const handleLeave = (member) => {
       if (!member || !member.clientId) return;
       if (!recordSystemEvent(`leave:${member.clientId}`)) return;
-      const isMe = member.clientId === ably.auth.clientId;
       const { display } = parseClientId(member.clientId);
-      const text = isMe
-        ? 'You left the chat'
-        : pickRandom(LEAVE_TEMPLATES).replace('%s', display);
+      const text = pickRandom(LEAVE_TEMPLATES).replace('%s', display);
       setMessages((history) => [
         ...history.slice(-199),
         {
