@@ -479,6 +479,44 @@ const AblyChatComponent = (props) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Reactions live on a sibling channel so they do not pollute chat history.
+  // State shape: { [messageId]: { [emoji]: [clientId, ...] } }. Add/remove
+  // ops are idempotent so concurrent reactions from multiple peers always
+  // converge to the same view.
+  const QUICK_REACTIONS = ['\u{1F44D}', '\u2764\uFE0F', '\u{1F602}', '\u{1F389}', '\u{1F525}'];
+  const [reactionsByMessage, setReactionsByMessage] = useState({});
+  const [reactionsChannel] = useChannel('reactions', (msg) => {
+    if (!msg || !msg.data) return;
+    const { messageId, emoji, action } = msg.data;
+    if (!messageId || !emoji || !msg.clientId) return;
+    setReactionsByMessage((prev) => {
+      const next = { ...prev };
+      const perMsg = { ...(next[messageId] || {}) };
+      const current = new Set(perMsg[emoji] || []);
+      if (action === 'remove') current.delete(msg.clientId);
+      else current.add(msg.clientId);
+      if (current.size === 0) {
+        delete perMsg[emoji];
+      } else {
+        perMsg[emoji] = Array.from(current);
+      }
+      if (Object.keys(perMsg).length === 0) {
+        delete next[messageId];
+      } else {
+        next[messageId] = perMsg;
+      }
+      return next;
+    });
+  });
+
+  const toggleReaction = React.useCallback((messageId, emoji) => {
+    if (!messageId || !emoji || !ably || !ably.auth) return;
+    const myId = ably.auth.clientId;
+    const current = (reactionsByMessage[messageId] || {})[emoji] || [];
+    const action = current.includes(myId) ? 'remove' : 'add';
+    try { reactionsChannel.publish('react', { messageId, emoji, action }); } catch (e) { /* best-effort */ }
+  }, [ably, reactionsByMessage, reactionsChannel]);
+
   const publishTyping = React.useCallback((kind) => {
     if (!typingChannel) return;
     if (kind === 'start') {
@@ -889,9 +927,16 @@ const AblyChatComponent = (props) => {
                   }
                   const isMe = message.clientId === ably.auth.clientId;
                   const { display, type, address } = parseClientId(message.clientId);
+                  // Reactions are keyed by Ably's auto-generated message id;
+                  // fall back to index when missing (very rare, e.g. local
+                  // optimistic states) so we still render but cannot react.
+                  const messageId = message.id || null;
+                  const myClientId = ably && ably.auth && ably.auth.clientId;
+                  const messageReactions = (messageId && reactionsByMessage[messageId]) || {};
+                  const reactionEntries = Object.entries(messageReactions);
                   return (
-                    <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full`}>
-                      <div className={`max-w-[70%] break-words p-4 transition-colors ${
+                    <div key={message.id || index} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full group/msg`}>
+                      <div className={`max-w-[70%] break-words p-4 transition-colors relative ${
                         isMe
                           ? 'bg-[color:var(--accent)] text-white rounded-t-2xl rounded-l-2xl shadow-glow-sm'
                           : 'bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] rounded-t-2xl rounded-r-2xl'
@@ -931,6 +976,61 @@ const AblyChatComponent = (props) => {
                         <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
                           {renderMarkdown(message.data)}
                         </div>
+
+                        {/* Reaction pills row: only rendered when at least
+                            one reaction exists. The pill shows the emoji and
+                            the running count; clicking toggles the local
+                            user's vote on/off. */}
+                        {reactionEntries.length > 0 && (
+                          <div data-testid="reactions-row" className="mt-2 flex flex-wrap gap-1">
+                            {reactionEntries.map(([emoji, clientIds]) => {
+                              const mine = clientIds.includes(myClientId);
+                              return (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  data-testid="reaction-pill"
+                                  onClick={() => toggleReaction(messageId, emoji)}
+                                  disabled={!messageId}
+                                  title={mine ? 'Remove your reaction' : 'Add reaction'}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
+                                    mine
+                                      ? 'bg-[color:var(--accent-soft)] border-[color:var(--accent)] text-[color:var(--accent)]'
+                                      : 'bg-[color:var(--surface)]/60 border-[color:var(--border)] text-[color:var(--text-muted)] hover:border-[color:var(--accent)]'
+                                  }`}
+                                >
+                                  <span aria-hidden="true">{emoji}</span>
+                                  <span className="tabular-nums">{clientIds.length}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Hover-revealed quick-reaction picker. Anchored to
+                            the opposite side of the message so it never
+                            overlaps the bubble's own corner. */}
+                        {messageId && (
+                          <div
+                            data-testid="reaction-picker"
+                            className={`pointer-events-none opacity-0 group-hover/msg:opacity-100 group-hover/msg:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto transition-opacity absolute -top-3 ${
+                              isMe ? 'left-2' : 'right-2'
+                            } flex gap-0.5 px-1 py-0.5 rounded-full bg-[color:var(--surface)] border border-[color:var(--border)] shadow-md z-10`}
+                          >
+                            {QUICK_REACTIONS.map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                data-testid="reaction-quick"
+                                onClick={() => toggleReaction(messageId, emoji)}
+                                title={`React with ${emoji}`}
+                                className="text-sm hover:scale-125 transition-transform leading-none px-1"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
