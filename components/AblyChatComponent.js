@@ -346,6 +346,7 @@ const AblyChatComponent = (props) => {
   const handleInputChange = (e) => {
     const value = e.target.value;
     setMessageText(value);
+    requestAnimationFrame(resizeTextarea);
     if (value.trim().length > 0) {
       publishTyping('start');
     } else {
@@ -375,21 +376,41 @@ const AblyChatComponent = (props) => {
         } catch (e) {
           // some input types do not support setSelectionRange; ignore
         }
+        resizeTextarea();
       }
     });
   };
 
+  // Reset the textarea height to its single-row baseline. Called after send
+  // and on input changes that shrink the content.
+  const resizeTextarea = React.useCallback(() => {
+    const el = inputBoxRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    // Cap at ~6 lines (text-base * 1.5 line-height ≈ 24px per line + padding).
+    const max = 24 * 6 + 20;
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+  }, []);
+
   const handleFormSubmission = (event) => {
     event.preventDefault();
+    if (messageTextIsEmpty) return;
     sendChatMessage(messageText);
+    requestAnimationFrame(resizeTextarea);
   };
 
-  const handleKeyPress = (event) => {
-    if (event.charCode !== 13 || messageTextIsEmpty) {
-      return;
-    }
-    sendChatMessage(messageText);
+  // Enter sends, Shift+Enter inserts a newline (default textarea behavior).
+  // We use keyDown rather than the deprecated keyPress, and respect IME
+  // composition (e.g. CJK input) so pressing Enter to commit a candidate
+  // does not also send the message. Empty Enter is swallowed so the textarea
+  // does not start collecting blank newlines.
+  const handleKeyDown = (event) => {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    if (event.nativeEvent && event.nativeEvent.isComposing) return;
     event.preventDefault();
+    if (messageTextIsEmpty) return;
+    sendChatMessage(messageText);
+    requestAnimationFrame(resizeTextarea);
   };
 
   const messages = receivedMessages.map((message, index) => {
@@ -436,13 +457,18 @@ const AblyChatComponent = (props) => {
 
   return (
     <div className="container mx-auto pt-32 md:pt-20">
-      <div className="min-w-full border border-[color:var(--border)] rounded-2xl overflow-hidden lg:grid lg:grid-cols-4 bg-[color:var(--surface)]/80 backdrop-blur-xl">
+      {/* On lg the chat card has a fixed height (viewport - top padding) and the
+          inner column uses flex with min-h-0, so messages shrink when the
+          textarea auto-grows. On mobile the sidebar stacks below, so the card
+          stays auto-height and the messages container falls back to a calc-based
+          height that already reserves room for a worst-case multi-line input. */}
+      <div className="min-w-full border border-[color:var(--border)] rounded-2xl overflow-hidden lg:grid lg:grid-cols-4 bg-[color:var(--surface)]/80 backdrop-blur-xl lg:h-[calc(100dvh-100px)]">
         {/* Main Chat Area */}
-        <div className="lg:col-span-3">
-          <div className="grid grid-rows-[1fr_auto]">
+        <div className="lg:col-span-3 lg:h-full lg:min-h-0">
+          <div className="flex flex-col lg:h-full lg:min-h-0">
             <div
               ref={messagesContainerRef}
-              className="flex flex-col gap-4 p-6 h-[calc(100dvh-250px)] lg:h-[calc(100dvh-190px)] overflow-y-auto overscroll-contain bg-[color:var(--bg)]/40"
+              className="flex flex-col gap-4 p-6 h-[calc(100dvh-330px)] lg:h-auto lg:flex-1 lg:min-h-0 overflow-y-auto overscroll-contain bg-[color:var(--bg)]/40"
             >
               {props.currentUserWalletAddress !== 'Connect your wallet' &&
                 receivedMessages.map((message, index) => {
@@ -505,7 +531,7 @@ const AblyChatComponent = (props) => {
 
             {/* Message Input */}
             {props.currentUserWalletAddress !== 'Connect your wallet' && (
-              <form onSubmit={handleFormSubmission} className="p-4 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
+              <form onSubmit={handleFormSubmission} className="flex-shrink-0 p-4 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
                 {/* Typing indicator: rendered with reserved height so the
                     input row never jumps when someone starts/stops typing. */}
                 <div className="h-5 mb-1 px-2 text-xs text-[color:var(--text-muted)] flex items-center gap-1.5" aria-live="polite">
@@ -520,22 +546,26 @@ const AblyChatComponent = (props) => {
                     </>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
+                <div className="flex items-end gap-2">
+                  <textarea
                     ref={inputBoxRef}
-                    type="text"
+                    rows={1}
                     value={messageText}
                     placeholder="Type your message..."
                     onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyDown}
                     // text-base == 16px: prevents iOS Safari from auto-zooming
                     // into the input on focus (which triggers a layout shift).
-                    className="flex-1 min-w-0 px-4 py-2.5 text-base bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-full focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
+                    // resize-none + JS auto-grow: textarea expands up to ~6 rows
+                    // then scrolls. leading-6 keeps the line-height consistent
+                    // with the JS height calculation in resizeTextarea.
+                    className="flex-1 min-w-0 px-4 py-2.5 text-base leading-6 bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-2xl resize-none overflow-y-auto focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
                   />
                   <EmojiPicker onSelect={insertEmoji} />
                   <button
                     type="submit"
                     disabled={messageTextIsEmpty}
+                    title="Send (Enter) — Shift+Enter for newline"
                     className="flex-shrink-0 p-2.5 rounded-full bg-[color:var(--accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--accent-hover)] transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
                     aria-label="Send message"
                   >
