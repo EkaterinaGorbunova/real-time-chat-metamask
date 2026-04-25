@@ -720,10 +720,12 @@ const AblyChatComponent = (props) => {
         ? (isItMe ? localSiwe : decoded.siwe)
         : null;
       const isVerified = type === 'wallet' && verifySiwe(memberSiwe, address);
-      // Show the tip button only when (a) we are a wallet user ourselves
-      // (so we have a `from` to send from), (b) the target is a different
-      // wallet user, and (c) we have an address to tip to.
-      const canTip = !isItMe && type === 'wallet' && address && myWalletAddress;
+      // The tip button is shown for every other wallet user (so the feature
+      // is discoverable even to guest viewers). It is only *enabled* when we
+      // ourselves have a wallet to send from; otherwise it renders disabled
+      // with a "Connect wallet to tip" hint.
+      const showTip = !isItMe && type === 'wallet' && !!address;
+      const canTip = showTip && !!myWalletAddress;
 
       return (
         <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
@@ -743,14 +745,20 @@ const AblyChatComponent = (props) => {
             </span>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {memberChainId && <ChainBadge chainId={memberChainId} />}
-              {canTip && (
+              {showTip && (
                 <button
                   type="button"
                   data-testid="tip-button"
-                  onClick={() => setTipTarget({ address, label: display })}
-                  title={`Send a tip to ${display}`}
-                  aria-label={`Send a tip to ${display}`}
-                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-[color:var(--border)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] text-[color:var(--text-muted)]"
+                  data-tip-disabled={canTip ? undefined : 'true'}
+                  onClick={canTip ? () => setTipTarget({ address, label: display }) : undefined}
+                  disabled={!canTip}
+                  title={canTip ? `Send a tip to ${display}` : 'Connect wallet to tip'}
+                  aria-label={canTip ? `Send a tip to ${display}` : 'Connect wallet to tip'}
+                  className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border ${
+                    canTip
+                      ? 'border-[color:var(--border)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] text-[color:var(--text-muted)]'
+                      : 'border-[color:var(--border)] text-[color:var(--text-subtle)] opacity-60 cursor-not-allowed'
+                  }`}
                 >
                   <span aria-hidden="true">💸</span>
                   <span>Tip</span>
