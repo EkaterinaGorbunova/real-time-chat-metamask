@@ -60,6 +60,12 @@ const sanitizeMessage = (raw) => {
 const shortAddress = (addr) =>
   addr && addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr || '';
 
+// Client-side anti-spam: sliding window of N sends per M ms. Purely a UX
+// guard — Ably/server-side limits are still the real defence — but it keeps
+// a single tab from flooding the room and gives the user honest feedback.
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 10_000;
+
 const parseClientId = (clientId) => {
   if (!clientId) return { type: 'unknown', display: '', icon: '❓', address: null };
   if (clientId.startsWith('guest:')) {
@@ -188,6 +194,27 @@ const AblyChatComponent = (props) => {
   const messageTextLength = messageText.length;
   const messageTextIsTooLong = messageTextLength > MAX_MESSAGE_LENGTH;
   const showCharCounter = messageTextLength >= Math.floor(MAX_MESSAGE_LENGTH * SOFT_WARN_RATIO);
+
+  // Sliding window of recent send timestamps + a derived cooldown countdown.
+  // Timestamps live in a ref (no re-renders on every send); the countdown is
+  // mirrored to state so the UI can show "wait Ns" and disable the button.
+  const recentSendsRef = React.useRef([]);
+  const [rateCooldownMs, setRateCooldownMs] = useState(0);
+  // Tick every 250ms while throttled so the displayed countdown updates and
+  // the gate releases automatically once the oldest send falls out of the
+  // window.
+  React.useEffect(() => {
+    if (rateCooldownMs <= 0) return undefined;
+    const id = setInterval(() => {
+      const now = Date.now();
+      const oldest = recentSendsRef.current[0];
+      const remaining = oldest ? Math.max(0, RATE_LIMIT_WINDOW_MS - (now - oldest)) : 0;
+      setRateCooldownMs(remaining);
+    }, 250);
+    return () => clearInterval(id);
+  }, [rateCooldownMs]);
+  const rateCooldownSeconds = Math.ceil(rateCooldownMs / 1000);
+  const isRateLimited = rateCooldownMs > 0;
 
   // Переместили функцию внутрь компонента
   const shortenAddress = (address) => {
@@ -402,6 +429,17 @@ const AblyChatComponent = (props) => {
   const sendChatMessage = (messageText) => {
     const cleaned = sanitizeMessage(messageText);
     if (!cleaned) return; // sanitization wiped everything (e.g. only zero-width chars)
+    // Sliding-window rate limit: drop sends older than the window, then either
+    // record this one or surface a cooldown to the UI.
+    const now = Date.now();
+    const recent = recentSendsRef.current.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    if (recent.length >= RATE_LIMIT_MAX) {
+      recentSendsRef.current = recent;
+      setRateCooldownMs(Math.max(1, RATE_LIMIT_WINDOW_MS - (now - recent[0])));
+      return;
+    }
+    recent.push(now);
+    recentSendsRef.current = recent;
     channel.publish({ name: 'chat-message', data: cleaned });
     publishTyping('stop');
     setMessageText('');
@@ -473,7 +511,7 @@ const AblyChatComponent = (props) => {
 
   const handleFormSubmission = (event) => {
     event.preventDefault();
-    if (messageTextIsEmpty || messageTextIsTooLong) return;
+    if (messageTextIsEmpty || messageTextIsTooLong || isRateLimited) return;
     sendChatMessage(messageText);
     requestAnimationFrame(resizeTextarea);
   };
@@ -487,7 +525,7 @@ const AblyChatComponent = (props) => {
     if (event.key !== 'Enter' || event.shiftKey) return;
     if (event.nativeEvent && event.nativeEvent.isComposing) return;
     event.preventDefault();
-    if (messageTextIsEmpty || messageTextIsTooLong) return;
+    if (messageTextIsEmpty || messageTextIsTooLong || isRateLimited) return;
     sendChatMessage(messageText);
     requestAnimationFrame(resizeTextarea);
   };
@@ -629,7 +667,16 @@ const AblyChatComponent = (props) => {
                       <span className="truncate">{typingLabel}</span>
                     </>
                   )}
-                  {showCharCounter && (
+                  {isRateLimited && (
+                    <span
+                      className="ml-auto inline-flex items-center gap-1 text-amber-400 font-medium tabular-nums"
+                      role="status"
+                    >
+                      <span aria-hidden="true">⏳</span>
+                      Slow down — wait {rateCooldownSeconds}s
+                    </span>
+                  )}
+                  {!isRateLimited && showCharCounter && (
                     <span
                       className={`ml-auto tabular-nums ${
                         messageTextIsTooLong ? 'text-rose-500 font-semibold' : 'text-[color:var(--text-muted)]'
@@ -669,11 +716,13 @@ const AblyChatComponent = (props) => {
                   <EmojiPicker onSelect={insertEmoji} />
                   <button
                     type="submit"
-                    disabled={messageTextIsEmpty || messageTextIsTooLong}
+                    disabled={messageTextIsEmpty || messageTextIsTooLong || isRateLimited}
                     title={
-                      messageTextIsTooLong
-                        ? `Message too long (${messageTextLength}/${MAX_MESSAGE_LENGTH})`
-                        : 'Send (Enter) — Shift+Enter for newline'
+                      isRateLimited
+                        ? `Slow down — wait ${rateCooldownSeconds}s`
+                        : messageTextIsTooLong
+                          ? `Message too long (${messageTextLength}/${MAX_MESSAGE_LENGTH})`
+                          : 'Send (Enter) — Shift+Enter for newline'
                     }
                     className="flex-shrink-0 p-2.5 rounded-full bg-[color:var(--accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--accent-hover)] transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
                     aria-label="Send message"
