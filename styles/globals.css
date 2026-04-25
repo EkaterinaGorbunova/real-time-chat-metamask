@@ -1,6 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Tailwind v4 defaults dark variants to prefers-color-scheme. We toggle
+   via a .dark class on <html> (set by the inline theme script in
+   app/layout.js), so override the dark variant to match either the html
+   element itself or any of its descendants. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Custom utilities preserved from the previous tailwind.config.js. Only
+   shadow-glow-* are actually referenced in markup; the unused colour
+   tokens (accent, steel) and the font-sans extension were dropped. */
+@theme {
+  --shadow-glow-sm: 0 0 12px rgba(167, 139, 250, 0.35);
+  --shadow-glow: 0 0 24px rgba(167, 139, 250, 0.45);
+  --shadow-glow-lg: 0 0 40px rgba(167, 139, 250, 0.55);
+}
 
 /* Theme tokens. Light values are defaults; the .dark class on <html> swaps
    them. Components reference these via Tailwind arbitrary values like
