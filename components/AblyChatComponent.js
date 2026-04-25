@@ -21,6 +21,42 @@ configureAbly({
   clientId: resolveClientId(),
 });
 
+// Hard cap for a single message. Picked to match what comfortably fits in the
+// chat bubble UI without dwarfing other messages and to keep Ably payloads
+// well under any reasonable per-message limit.
+const MAX_MESSAGE_LENGTH = 2000;
+const SOFT_WARN_RATIO = 0.85; // show counter once the user crosses this fraction
+
+// Strip control characters (except \n and \t), collapse runs of >5 newlines so
+// users can't pad the chat with empty space, and trim outer whitespace.
+// Defensive: applied both on send and on receive so a malicious peer can't
+// poison rendering with weird unicode even if they bypass our local UI.
+const sanitizeMessage = (raw) => {
+  if (typeof raw !== 'string') return '';
+  // Remove ASCII control chars except \n (0x0A) and \t (0x09); also strip the
+  // common zero-width / direction-override unicode chars that are abused to
+  // hide content or fake names.
+  let cleaned = '';
+  for (let i = 0; i < raw.length; i += 1) {
+    const code = raw.charCodeAt(i);
+    if (code === 10 || code === 9) {
+      cleaned += raw[i];
+      continue;
+    }
+    if (code < 32 || code === 127) continue;
+    // U+200B–U+200F, U+202A–U+202E, U+2060, U+FEFF
+    if (
+      (code >= 0x200b && code <= 0x200f) ||
+      (code >= 0x202a && code <= 0x202e) ||
+      code === 0x2060 ||
+      code === 0xfeff
+    ) continue;
+    cleaned += raw[i];
+  }
+  cleaned = cleaned.replace(/\n{6,}/g, '\n\n\n\n\n');
+  return cleaned.trim().slice(0, MAX_MESSAGE_LENGTH);
+};
+
 const shortAddress = (addr) =>
   addr && addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr || '';
 
@@ -146,6 +182,12 @@ const AblyChatComponent = (props) => {
   const [receivedMessages, setMessages] = useState([]);
   const [numberOfMembers, setNumberOfMembers] = useState(0);
   const messageTextIsEmpty = messageText.trim().length === 0;
+  // Hard-cap state used to disable the send button and paint the textarea red.
+  // Counts characters of the raw input so the UI reflects what the user typed,
+  // not the post-sanitization length (sanitize only strips invisible junk).
+  const messageTextLength = messageText.length;
+  const messageTextIsTooLong = messageTextLength > MAX_MESSAGE_LENGTH;
+  const showCharCounter = messageTextLength >= Math.floor(MAX_MESSAGE_LENGTH * SOFT_WARN_RATIO);
 
   // Переместили функцию внутрь компонента
   const shortenAddress = (address) => {
@@ -155,7 +197,12 @@ const AblyChatComponent = (props) => {
 
   const [channel, ably] = useChannel('chatroom', (message) => {
     try {
-      setMessages((history) => [...history.slice(-199), message]);
+      // Defense in depth: re-sanitize incoming text and drop messages that
+      // collapse to empty after sanitization (zero-width spam, control chars).
+      const cleaned = sanitizeMessage(message && message.data);
+      if (!cleaned) return;
+      const safeMessage = { ...message, data: cleaned };
+      setMessages((history) => [...history.slice(-199), safeMessage]);
     } catch (error) {
       if (error.statusCode === 410) {
         console.error('Error: Channel "chatroom" does not exist (410 Gone)');
@@ -353,7 +400,9 @@ const AblyChatComponent = (props) => {
     });
   
   const sendChatMessage = (messageText) => {
-    channel.publish({ name: 'chat-message', data: messageText });
+    const cleaned = sanitizeMessage(messageText);
+    if (!cleaned) return; // sanitization wiped everything (e.g. only zero-width chars)
+    channel.publish({ name: 'chat-message', data: cleaned });
     publishTyping('stop');
     setMessageText('');
     if (inputBoxRef.current) inputBoxRef.current.focus();
@@ -424,7 +473,7 @@ const AblyChatComponent = (props) => {
 
   const handleFormSubmission = (event) => {
     event.preventDefault();
-    if (messageTextIsEmpty) return;
+    if (messageTextIsEmpty || messageTextIsTooLong) return;
     sendChatMessage(messageText);
     requestAnimationFrame(resizeTextarea);
   };
@@ -438,7 +487,7 @@ const AblyChatComponent = (props) => {
     if (event.key !== 'Enter' || event.shiftKey) return;
     if (event.nativeEvent && event.nativeEvent.isComposing) return;
     event.preventDefault();
-    if (messageTextIsEmpty) return;
+    if (messageTextIsEmpty || messageTextIsTooLong) return;
     sendChatMessage(messageText);
     requestAnimationFrame(resizeTextarea);
   };
@@ -566,8 +615,9 @@ const AblyChatComponent = (props) => {
             {/* Message Input */}
             {props.currentUserWalletAddress !== 'Connect your wallet' && (
               <form onSubmit={handleFormSubmission} className="flex-shrink-0 p-4 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
-                {/* Typing indicator: rendered with reserved height so the
-                    input row never jumps when someone starts/stops typing. */}
+                {/* Typing indicator + char counter share the same reserved
+                    row so the input never jumps. Counter only appears when the
+                    user crosses the soft-warn threshold. */}
                 <div className="h-5 mb-1 px-2 text-xs text-[color:var(--text-muted)] flex items-center gap-1.5" aria-live="polite">
                   {typingLabel && (
                     <>
@@ -579,6 +629,16 @@ const AblyChatComponent = (props) => {
                       <span className="truncate">{typingLabel}</span>
                     </>
                   )}
+                  {showCharCounter && (
+                    <span
+                      className={`ml-auto tabular-nums ${
+                        messageTextIsTooLong ? 'text-rose-500 font-semibold' : 'text-[color:var(--text-muted)]'
+                      }`}
+                      aria-live="polite"
+                    >
+                      {messageTextLength}/{MAX_MESSAGE_LENGTH}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-end gap-2">
                   <textarea
@@ -588,18 +648,33 @@ const AblyChatComponent = (props) => {
                     placeholder="Type your message..."
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
+                    // Soft cap via maxLength: browsers truncate typed/pasted
+                    // input at this many chars. We allow a small overshoot
+                    // window (+50) so a user pasting slightly over the limit
+                    // sees the red counter and the disabled button instead of
+                    // silently losing characters at the boundary.
+                    maxLength={MAX_MESSAGE_LENGTH + 50}
+                    aria-invalid={messageTextIsTooLong}
                     // text-base == 16px: prevents iOS Safari from auto-zooming
                     // into the input on focus (which triggers a layout shift).
                     // resize-none + JS auto-grow: textarea expands up to ~6 rows
                     // then scrolls. leading-6 keeps the line-height consistent
                     // with the JS height calculation in resizeTextarea.
-                    className="flex-1 min-w-0 px-4 py-2.5 text-base leading-6 bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-2xl resize-none overflow-y-auto focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
+                    className={`flex-1 min-w-0 px-4 py-2.5 text-base leading-6 bg-[color:var(--surface-muted)] border text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-2xl resize-none overflow-y-auto focus:outline-none focus:ring-2 transition-colors ${
+                      messageTextIsTooLong
+                        ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30'
+                        : 'border-[color:var(--border)] focus:border-[color:var(--accent)] focus:ring-[color:var(--accent)]/30'
+                    }`}
                   />
                   <EmojiPicker onSelect={insertEmoji} />
                   <button
                     type="submit"
-                    disabled={messageTextIsEmpty}
-                    title="Send (Enter) — Shift+Enter for newline"
+                    disabled={messageTextIsEmpty || messageTextIsTooLong}
+                    title={
+                      messageTextIsTooLong
+                        ? `Message too long (${messageTextLength}/${MAX_MESSAGE_LENGTH})`
+                        : 'Send (Enter) — Shift+Enter for newline'
+                    }
                     className="flex-shrink-0 p-2.5 rounded-full bg-[color:var(--accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--accent-hover)] transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
                     aria-label="Send message"
                   >
