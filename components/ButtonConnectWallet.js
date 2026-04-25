@@ -1,5 +1,6 @@
 import React from 'react';
 import ThemeToggle from './ThemeToggle';
+import Avatar from './Avatar';
 import { useEnsName } from '../lib/ens';
 
 const ButtonConnectWallet = (props) => {
@@ -49,7 +50,12 @@ const ButtonConnectWallet = (props) => {
                       <span className="absolute inline-flex h-full w-full rounded-full bg-[color:var(--online)] opacity-60 animate-ping" />
                       <span className="relative inline-flex w-2 h-2 rounded-full bg-[color:var(--online)]" />
                     </span>
-                    <span aria-hidden="true">{isGuest ? '👤' : '💎'}</span>
+                    <Avatar
+                      type={isGuest ? 'guest' : 'wallet'}
+                      address={isGuest ? null : props.connect}
+                      nickname={isGuest ? props.connect : null}
+                      size={20}
+                    />
                     <span className="hidden sm:block text-sm font-medium">{fullLabel}</span>
                     <span className="sm:hidden text-sm font-medium">{shortLabel}</span>
                   </div>
