@@ -769,7 +769,7 @@ const AblyChatComponent = (props) => {
                   >
                     {canTip
                       ? `Send ETH tip to ${display}`
-                      : 'Send ETH tip — connect a wallet to enable'}
+                      : 'Send ETH tip - connect a wallet to enable'}
                   </span>
                 </span>
               )}
@@ -1182,7 +1182,7 @@ const AblyChatComponent = (props) => {
                       role="status"
                     >
                       <span aria-hidden="true">⏳</span>
-                      Slow down — wait {rateCooldownSeconds}s
+                      Slow down - wait {rateCooldownSeconds}s
                     </span>
                   )}
                   {!isRateLimited && showCharCounter && (
@@ -1228,10 +1228,10 @@ const AblyChatComponent = (props) => {
                     disabled={messageTextIsEmpty || messageTextIsTooLong || isRateLimited}
                     title={
                       isRateLimited
-                        ? `Slow down — wait ${rateCooldownSeconds}s`
+                        ? `Slow down - wait ${rateCooldownSeconds}s`
                         : messageTextIsTooLong
                           ? `Message too long (${messageTextLength}/${MAX_MESSAGE_LENGTH})`
-                          : 'Send (Enter) — Shift+Enter for newline'
+                          : 'Send (Enter), Shift+Enter for newline'
                     }
                     className="flex-shrink-0 p-2.5 rounded-full bg-[color:var(--accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--accent-hover)] transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
                     aria-label="Send message"
