@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { configureAbly, useChannel } from '@ably-labs/react-hooks';
-import { usePresence, assertConfiguration } from "@ably-labs/react-hooks";
+import * as Ably from 'ably';
+import {
+  AblyProvider,
+  ChannelProvider,
+  useChannel,
+  usePresence,
+  usePresenceListener,
+} from 'ably/react';
 import EmojiPicker from './EmojiPicker';
 import Avatar from './Avatar';
 import TipModal from './TipModal';
@@ -19,10 +25,16 @@ const resolveClientId = () => {
   return null;
 };
 
-configureAbly({
-  key: process.env.ABLY_API_KEY,
-  clientId: resolveClientId(),
-});
+// Realtime client is created once per module load (which only happens client
+// side because the parent dynamically imports this file with ssr:false). On
+// logout the page reloads and a fresh client picks up the new identity.
+const ablyClient =
+  typeof window !== 'undefined'
+    ? new Ably.Realtime({
+        key: process.env.ABLY_API_KEY,
+        clientId: resolveClientId(),
+      })
+    : null;
 
 // Hard cap for a single message. Picked to match what comfortably fits in the
 // chat bubble UI without dwarfing other messages and to keep Ably payloads
@@ -380,7 +392,7 @@ const renderMarkdown = (text) => {
   return out;
 };
 
-const AblyChatComponent = (props) => {
+const ChatBody = (props) => {
   const inputBoxRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
   const messagesContainerRef = React.useRef(null);
@@ -425,7 +437,7 @@ const AblyChatComponent = (props) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const [channel, ably] = useChannel('chatroom', (message) => {
+  const { channel, ably } = useChannel('chatroom', (message) => {
     try {
       // The publish payload is either a plain string (legacy / no-reply) or an
       // object { text, replyTo } when the sender attached a quote. Normalize
@@ -466,7 +478,7 @@ const AblyChatComponent = (props) => {
   const TYPING_TTL_MS = 4000;
   const TYPING_THROTTLE_MS = 2000;
   const lastTypingSentRef = React.useRef(0);
-  const [typingChannel] = useChannel('typing', (msg) => {
+  const { channel: typingChannel } = useChannel('typing', (msg) => {
     if (!ably || !ably.auth || msg.clientId === ably.auth.clientId) return;
     setTypingUsers((prev) => {
       const next = new Map(prev);
@@ -502,7 +514,7 @@ const AblyChatComponent = (props) => {
   // converge to the same view.
   const QUICK_REACTIONS = ['\u{1F44D}', '\u2764\uFE0F', '\u{1F602}', '\u{1F389}', '\u{1F525}'];
   const [reactionsByMessage, setReactionsByMessage] = useState({});
-  const [reactionsChannel] = useChannel('reactions', (msg) => {
+  const { channel: reactionsChannel } = useChannel('reactions', (msg) => {
     if (!msg || !msg.data) return;
     const { messageId, emoji, action } = msg.data;
     if (!messageId || !emoji || !msg.clientId) return;
@@ -571,7 +583,11 @@ const AblyChatComponent = (props) => {
   const initialPresencePayloadRef = React.useRef(
     encodePresencePayload({ chainId: normalizeChainId(localChainId), siwe: localSiwe })
   );
-  const [presenceData, updatePresence] = usePresence("headlines", initialPresencePayloadRef.current);
+  // Ably v2 split the legacy "presence" hook into two: usePresence handles
+  // entering/updating the local member, usePresenceListener returns the live
+  // presence set.
+  const { updateStatus: updatePresence } = usePresence('headlines', initialPresencePayloadRef.current);
+  const { presenceData } = usePresenceListener('headlines');
   // Mirror chainId / signature changes into presence so other clients see
   // updated badges without a reload. Skip identical payloads to avoid
   // redundant presence `update` events right after `enter`.
@@ -1269,6 +1285,26 @@ const AblyChatComponent = (props) => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Top-level wrapper: AblyProvider holds the singleton Realtime client; each
+// ChannelProvider binds a channel name into the React context that the
+// matching useChannel/usePresence hooks inside ChatBody read from.
+const AblyChatComponent = (props) => {
+  if (!ablyClient) return null;
+  return (
+    <AblyProvider client={ablyClient}>
+      <ChannelProvider channelName="chatroom">
+        <ChannelProvider channelName="typing">
+          <ChannelProvider channelName="reactions">
+            <ChannelProvider channelName="headlines">
+              <ChatBody {...props} />
+            </ChannelProvider>
+          </ChannelProvider>
+        </ChannelProvider>
+      </ChannelProvider>
+    </AblyProvider>
   );
 };
 
