@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { configureAbly, useChannel } from '@ably-labs/react-hooks';
 import { usePresence, assertConfiguration } from "@ably-labs/react-hooks";
 import EmojiPicker from './EmojiPicker';
+import Avatar from './Avatar';
 import { useEnsName } from '../lib/ens';
 
 // Resolve the Ably clientId from either a connected wallet or a stored guest session.
@@ -314,13 +315,13 @@ const AblyChatComponent = (props) => {
 
     const presenceList = uniquePresence.map((member, index) => {
       const isItMe = member.clientId === ably.auth.clientId;
-      const { display, icon, type, address } = parseClientId(member.clientId);
+      const { display, type, address } = parseClientId(member.clientId);
 
       return (
         <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
           <div className="text-[color:var(--text)] text-sm flex items-center justify-between">
             <span className="truncate flex items-center gap-1.5">
-              <span aria-hidden="true">{icon}</span>
+              <Avatar type={type} address={address} nickname={display} size={20} />
               {type === 'wallet' ? (
                 <WalletName address={address} fallback={display} className="truncate" />
               ) : (
@@ -497,7 +498,7 @@ const AblyChatComponent = (props) => {
                     );
                   }
                   const isMe = message.clientId === ably.auth.clientId;
-                  const { display, icon, type, address } = parseClientId(message.clientId);
+                  const { display, type, address } = parseClientId(message.clientId);
                   return (
                     <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full`}>
                       <div className={`max-w-[70%] break-words p-4 transition-colors ${
@@ -510,7 +511,7 @@ const AblyChatComponent = (props) => {
                             <span>You</span>
                           ) : (
                             <>
-                              <span aria-hidden="true">{icon}</span>
+                              <Avatar type={type} address={address} nickname={display} size={16} />
                               {type === 'wallet' ? (
                                 <WalletName address={address} fallback={display} />
                               ) : (
