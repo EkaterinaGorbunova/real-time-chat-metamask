@@ -19,6 +19,12 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
+        {/* Run the theme init before any stylesheet or body parsing so the
+            .dark class is on <html> for the very first paint. Placing this
+            in <body> would let the browser briefly compute the body
+            background from the light :root tokens, producing a white flash
+            on full page reloads (e.g. after logout). */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -27,7 +33,6 @@ export default function Document() {
         />
       </Head>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <Main />
         <NextScript />
       </body>
