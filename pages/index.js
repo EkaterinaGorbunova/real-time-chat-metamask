@@ -5,6 +5,7 @@ import ButtonConnectWallet from '../components/ButtonConnectWallet';
 import WalletIsNotConnected from '../components/WalletIsNotConnected';
 import AblyConfigError from '../components/AblyConfigError';
 import { ethers } from 'ethers';
+import { requestSiweSignature } from '../lib/siwe';
 
 const AblyChatComponent = dynamic(
   () => import('../components/AblyChatComponent'),
@@ -136,6 +137,16 @@ export default function Home() {
             connectButtonName: connection.connectButtonName,
           };
         });
+
+        // Fire SIWE-light signature request best-effort. We do not block the
+        // chat UI on it: if the user rejects, the chat still opens, they just
+        // do not get a verified \u2713 next to their nick. The chainId is fetched
+        // from the wallet (not from the network object above) so users on
+        // L2s see the right chain in their signed message.
+        try {
+          const chainHex = await window.ethereum.request({ method: 'eth_chainId' });
+          requestSiweSignature({ address: connection.walletAddress, chainId: chainHex });
+        } catch (sigErr) { /* best-effort */ }
       } catch (e) {
         console.log('Problem with loading account', e);
       }
@@ -161,6 +172,9 @@ export default function Home() {
   };
 
   const handleLogout = async () => {
+    // Drop any cached SIWE payload so a different wallet on the same tab
+    // does not inherit the previous user's verified badge.
+    try { sessionStorage.clear(); } catch (e) {}
     localStorage.clear();
     // Remember explicit logout so the app does not auto-reconnect on reload
     localStorage.setItem('wasLoggedOut', 'true');
