@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { configureAbly, useChannel } from '@ably-labs/react-hooks';
 import { usePresence, assertConfiguration } from "@ably-labs/react-hooks";
 import EmojiPicker from './EmojiPicker';
+import { useEnsName } from '../lib/ens';
 
 // Resolve the Ably clientId from either a connected wallet or a stored guest session.
 // Prefixes let the chat UI distinguish wallet users from guests.
@@ -19,19 +20,28 @@ configureAbly({
   clientId: resolveClientId(),
 });
 
+const shortAddress = (addr) =>
+  addr && addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr || '';
+
 const parseClientId = (clientId) => {
-  if (!clientId) return { type: 'unknown', display: '', icon: '❓' };
+  if (!clientId) return { type: 'unknown', display: '', icon: '❓', address: null };
   if (clientId.startsWith('guest:')) {
-    return { type: 'guest', display: clientId.slice(6), icon: '👤' };
+    return { type: 'guest', display: clientId.slice(6), icon: '👤', address: null };
   }
   if (clientId.startsWith('wallet:')) {
     const addr = clientId.slice(7);
-    const display = addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
-    return { type: 'wallet', display, icon: '💎' };
+    return { type: 'wallet', display: shortAddress(addr), icon: '💎', address: addr };
   }
   // Backward compatibility: raw wallet address without prefix
-  const display = clientId.length > 10 ? `${clientId.slice(0, 6)}...${clientId.slice(-4)}` : clientId;
-  return { type: 'wallet', display, icon: '💎' };
+  return { type: 'wallet', display: shortAddress(clientId), icon: '💎', address: clientId };
+};
+
+// Renders an ENS name when one is cached/resolved for the address, otherwise
+// falls back to the short 0x… form. Used in both the member sidebar and the
+// message author label so the visual treatment stays consistent.
+const WalletName = ({ address, fallback, className }) => {
+  const ens = useEnsName(address);
+  return <span className={className} title={ens ? address : undefined}>{ens || fallback}</span>;
 };
 
 // Discord-style system messages for join/leave. Each client renders these
@@ -304,14 +314,18 @@ const AblyChatComponent = (props) => {
 
     const presenceList = uniquePresence.map((member, index) => {
       const isItMe = member.clientId === ably.auth.clientId;
-      const { display, icon, type } = parseClientId(member.clientId);
+      const { display, icon, type, address } = parseClientId(member.clientId);
 
       return (
         <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
           <div className="text-[color:var(--text)] text-sm flex items-center justify-between">
             <span className="truncate flex items-center gap-1.5">
               <span aria-hidden="true">{icon}</span>
-              <span className="truncate">{display}</span>
+              {type === 'wallet' ? (
+                <WalletName address={address} fallback={display} className="truncate" />
+              ) : (
+                <span className="truncate">{display}</span>
+              )}
               {type === 'guest' && (
                 <span className="text-[color:var(--text-subtle)] text-xs">(guest)</span>
               )}
@@ -483,7 +497,7 @@ const AblyChatComponent = (props) => {
                     );
                   }
                   const isMe = message.clientId === ably.auth.clientId;
-                  const { display, icon, type } = parseClientId(message.clientId);
+                  const { display, icon, type, address } = parseClientId(message.clientId);
                   return (
                     <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full`}>
                       <div className={`max-w-[70%] break-words p-4 transition-colors ${
@@ -497,7 +511,11 @@ const AblyChatComponent = (props) => {
                           ) : (
                             <>
                               <span aria-hidden="true">{icon}</span>
-                              <span>{display}</span>
+                              {type === 'wallet' ? (
+                                <WalletName address={address} fallback={display} />
+                              ) : (
+                                <span>{display}</span>
+                              )}
                               {type === 'guest' && <span className="opacity-75">(guest)</span>}
                             </>
                           )}
