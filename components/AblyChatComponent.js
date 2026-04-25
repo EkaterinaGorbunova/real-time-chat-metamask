@@ -179,6 +179,108 @@ const linkifyText = (text) => {
   });
 };
 
+// Lightweight markdown subset: ```fenced code```, `inline code`, **bold**,
+// *italic* / _italic_. Composed with linkifyText so URLs inside emphasis
+// stay clickable. Pure React-tree construction — never uses
+// dangerouslySetInnerHTML — so the message body cannot inject markup even
+// when authoring tags like <script>.
+const FENCE_RE = /```([\s\S]*?)```/g;
+const INLINE_RE = /`([^`\n]+)`|\*\*([^*\n]+?)\*\*|\*([^*\n]+?)\*|_([^_\n]+?)_/g;
+
+const renderInline = (text, baseKey) => {
+  if (typeof text !== 'string' || text.length === 0) return text;
+  const out = [];
+  let last = 0;
+  let i = 0;
+  let m;
+  // Local copy of the regex per call to avoid lastIndex bleed across recursion.
+  const re = new RegExp(INLINE_RE.source, 'g');
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) {
+      out.push(
+        <React.Fragment key={`${baseKey}-t${i}`}>
+          {linkifyText(text.slice(last, m.index))}
+        </React.Fragment>
+      );
+    }
+    if (m[1] !== undefined) {
+      out.push(
+        <code
+          key={`${baseKey}-c${i}`}
+          className="px-1.5 py-0.5 rounded bg-black/30 border border-[color:var(--border)] text-[0.92em] font-mono"
+        >
+          {m[1]}
+        </code>
+      );
+    } else if (m[2] !== undefined) {
+      out.push(
+        <strong key={`${baseKey}-b${i}`} className="font-semibold">
+          {renderInline(m[2], `${baseKey}-b${i}`)}
+        </strong>
+      );
+    } else {
+      const inner = m[3] !== undefined ? m[3] : m[4];
+      out.push(
+        <em key={`${baseKey}-i${i}`} className="italic">
+          {renderInline(inner, `${baseKey}-i${i}`)}
+        </em>
+      );
+    }
+    last = m.index + m[0].length;
+    i += 1;
+  }
+  if (last < text.length) {
+    out.push(
+      <React.Fragment key={`${baseKey}-tail`}>
+        {linkifyText(text.slice(last))}
+      </React.Fragment>
+    );
+  }
+  return out;
+};
+
+const renderMarkdown = (text) => {
+  if (typeof text !== 'string' || text.length === 0) return text;
+  const out = [];
+  let last = 0;
+  let i = 0;
+  let m;
+  const re = new RegExp(FENCE_RE.source, 'g');
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) {
+      out.push(
+        <React.Fragment key={`md-t${i}`}>
+          {renderInline(text.slice(last, m.index), `md-t${i}`)}
+        </React.Fragment>
+      );
+    }
+    let body = m[1];
+    // Strip the conventional newlines right after the opening fence and
+    // right before the closing one, so ```\ncode\n``` doesn't render with
+    // empty lines around the body.
+    if (body.startsWith('\n')) body = body.slice(1);
+    if (body.endsWith('\n')) body = body.slice(0, -1);
+    out.push(
+      <pre
+        key={`md-pre${i}`}
+        className="my-1 p-2 rounded-lg bg-black/40 border border-[color:var(--border)] overflow-x-auto text-[0.9em]"
+      >
+        <code className="font-mono whitespace-pre">{body}</code>
+      </pre>
+    );
+    last = m.index + m[0].length;
+    i += 1;
+  }
+  if (last < text.length) {
+    out.push(
+      <React.Fragment key="md-tail">
+        {renderInline(text.slice(last), 'md-tail')}
+      </React.Fragment>
+    );
+  }
+  return out;
+};
+
 const AblyChatComponent = (props) => {
   const inputBoxRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
@@ -641,7 +743,7 @@ const AblyChatComponent = (props) => {
                           </span>
                         </div>
                         <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
-                          {linkifyText(message.data)}
+                          {renderMarkdown(message.data)}
                         </div>
                       </div>
                     </div>
