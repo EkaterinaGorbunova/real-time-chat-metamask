@@ -34,39 +34,50 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
   const isValid = nickname.trim().length > 0;
 
   return (
-    <div className="container mx-auto pt-20">
-      <div className="max-w-5xl mx-auto p-8">
+    <div className="container mx-auto pt-24 md:pt-28">
+      <div className="max-w-5xl mx-auto px-6 pb-12">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-[color:var(--text)]">
+            Chat for the <span className="text-[color:var(--accent)]">decentralized</span> web
+          </h1>
+          <p className="mt-3 text-[color:var(--text-muted)] text-sm md:text-base">
+            Bring your wallet or just a nickname &ndash; pick how you want to join the conversation.
+          </p>
+        </div>
+
         <div className="flex flex-col md:flex-row md:items-stretch gap-6">
-          <div className="flex-1 bg-white rounded-xl shadow-lg p-8 border border-gray-200 text-center flex flex-col">
+          <div className="card-neon flex-1 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col hover:border-[color:var(--accent)]/50">
+            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/60 to-transparent" />
             <div className="text-5xl mb-3" aria-hidden="true">💎</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Connect Your Wallet</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-2xl font-semibold tracking-tight text-[color:var(--text)] mb-2">Connect Your Wallet</h2>
+            <p className="text-[color:var(--text-muted)] mb-6 text-sm">
               Connect any Web3 wallet to start chatting. <br/> Your wallet address will be used as your username in the chat.
             </p>
             <div className="mt-auto">
               <button
                 type="button"
                 onClick={handleConnectWallet}
-                className="w-full px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors"
+                className="w-full px-6 py-2.5 rounded-lg bg-[color:var(--accent)] hover:bg-[color:var(--accent-hover)] text-white font-medium transition-all shadow-glow-sm hover:shadow-glow"
               >
                 Connect Wallet
               </button>
-              <p className="text-xs text-gray-400 mt-3">
+              <p className="text-xs text-[color:var(--text-subtle)] mt-3">
                 Wallet users are marked with a 💎 badge and identified by address.
               </p>
             </div>
           </div>
 
-          <div className="flex md:hidden items-center gap-3 text-gray-400 text-sm">
-            <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex md:hidden items-center gap-3 text-[color:var(--text-subtle)] text-sm">
+            <div className="flex-1 h-px bg-[color:var(--border)]" />
             <span>or</span>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-[color:var(--border)]" />
           </div>
 
-          <div className="flex-1 bg-white rounded-xl shadow-lg p-8 border border-gray-200 text-center flex flex-col">
+          <div className="card-neon flex-1 relative rounded-2xl p-8 border border-[color:var(--border)] bg-[color:var(--surface)]/80 backdrop-blur-xl text-center flex flex-col hover:border-[color:var(--accent)]/50">
+            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/60 to-transparent" />
             <div className="text-5xl mb-3" aria-hidden="true">👤</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Continue as Guest</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-2xl font-semibold tracking-tight text-[color:var(--text)] mb-2">Continue as Guest</h2>
+            <p className="text-[color:var(--text-muted)] mb-6 text-sm">
               No wallet? No problem. Pick a nickname and start chatting.
             </p>
             <div className="mt-auto">
@@ -78,17 +89,17 @@ const WalletIsNotConnected = ({ onJoinAsGuest, onConnectWallet }) => {
                   maxLength={MAX_NICKNAME_LENGTH}
                   placeholder="Your nickname"
                   aria-label="Guest nickname"
-                  className="flex-1 px-4 py-2 text-base bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 px-4 py-2.5 text-base bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-lg focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
                 />
                 <button
                   type="submit"
                   disabled={!isValid}
-                  className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-6 py-2.5 rounded-lg bg-[color:var(--accent)] hover:bg-[color:var(--accent-hover)] text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
                 >
                   Join as Guest
                 </button>
               </form>
-              <p className="text-xs text-gray-400 mt-3">
+              <p className="text-xs text-[color:var(--text-subtle)] mt-3">
                 Guests are marked with a 👤 badge and cannot be verified.
               </p>
             </div>

@@ -131,15 +131,15 @@ const AblyChatComponent = (props) => {
       const { display, icon, type } = parseClientId(member.clientId);
 
       return (
-        <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-gray-50 group">
-          <div className="text-gray-700 text-sm flex items-center justify-between">
+        <div key={member.clientId || index} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
+          <div className="text-[color:var(--text)] text-sm flex items-center justify-between">
             <span className="truncate flex items-center gap-1.5">
               <span aria-hidden="true">{icon}</span>
               <span className="truncate">{display}</span>
               {type === 'guest' && (
-                <span className="text-gray-400 text-xs">(guest)</span>
+                <span className="text-[color:var(--text-subtle)] text-xs">(guest)</span>
               )}
-              {isItMe && <span className="text-gray-400 text-xs ml-1">(me)</span>}
+              {isItMe && <span className="text-[color:var(--accent)] text-xs ml-1">(me)</span>}
             </span>
           </div>
         </div>
@@ -208,14 +208,14 @@ const AblyChatComponent = (props) => {
   }, [receivedMessages.length]);
 
   return (
-    <div className="container mx-auto pt-32 md:pt-20"> {/* Увеличили отступ на мобильных до 128px */}
-      <div className="min-w-full border border-gray-200 rounded-xl shadow-lg overflow-hidden lg:grid lg:grid-cols-4">
+    <div className="container mx-auto pt-32 md:pt-20">
+      <div className="min-w-full border border-[color:var(--border)] rounded-2xl overflow-hidden lg:grid lg:grid-cols-4 bg-[color:var(--surface)]/80 backdrop-blur-xl">
         {/* Main Chat Area */}
-        <div className="lg:col-span-3 bg-white">
+        <div className="lg:col-span-3">
           <div className="grid grid-rows-[1fr_auto]">
             <div
               ref={messagesContainerRef}
-              className="flex flex-col gap-4 p-6 h-[calc(100dvh-220px)] lg:h-[calc(100dvh-160px)] overflow-y-auto overscroll-contain bg-gray-50"
+              className="flex flex-col gap-4 p-6 h-[calc(100dvh-220px)] lg:h-[calc(100dvh-160px)] overflow-y-auto overscroll-contain bg-[color:var(--bg)]/40"
             >
               {props.currentUserWalletAddress !== 'Connect your wallet' &&
                 receivedMessages.map((message, index) => {
@@ -223,12 +223,12 @@ const AblyChatComponent = (props) => {
                   const { display, icon, type } = parseClientId(message.clientId);
                   return (
                     <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full`}>
-                      <div className={`max-w-[70%] break-words ${
+                      <div className={`max-w-[70%] break-words p-4 transition-colors ${
                         isMe
-                          ? 'bg-indigo-600 text-white rounded-t-xl rounded-l-xl'
-                          : 'bg-white border border-gray-200 rounded-t-xl rounded-r-xl'
-                      } p-4 shadow-sm`}>
-                        <div className="text-xs mb-1 opacity-80 flex items-center gap-1">
+                          ? 'bg-[color:var(--accent)] text-white rounded-t-2xl rounded-l-2xl shadow-glow-sm'
+                          : 'bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] rounded-t-2xl rounded-r-2xl'
+                      }`}>
+                        <div className={`text-xs mb-1 flex items-center gap-1 ${isMe ? 'opacity-80' : 'text-[color:var(--text-muted)]'}`}>
                           {isMe ? (
                             <span>You</span>
                           ) : (
@@ -251,7 +251,7 @@ const AblyChatComponent = (props) => {
 
             {/* Message Input */}
             {props.currentUserWalletAddress !== 'Connect your wallet' && (
-              <form onSubmit={handleFormSubmission} className="p-4 bg-white border-t border-gray-200">
+              <form onSubmit={handleFormSubmission} className="p-4 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
                 <div className="flex items-center gap-2">
                   <input
                     ref={(element) => { inputBox = element; }}
@@ -262,12 +262,13 @@ const AblyChatComponent = (props) => {
                     onKeyPress={handleKeyPress}
                     // text-base == 16px: prevents iOS Safari from auto-zooming
                     // into the input on focus (which triggers a layout shift).
-                    className="flex-1 px-4 py-2 text-base bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-4 py-2.5 text-base bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-full focus:outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent)]/30 transition-colors"
                   />
                   <button
                     type="submit"
                     disabled={messageTextIsEmpty}
-                    className="flex-shrink-0 p-2 rounded-full bg-indigo-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
+                    className="flex-shrink-0 p-2.5 rounded-full bg-[color:var(--accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--accent-hover)] transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
+                    aria-label="Send message"
                   >
                     <svg className="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -279,15 +280,18 @@ const AblyChatComponent = (props) => {
           </div>
         </div>
 
-        {/* Sidebar*/}
-        <div className="border-t lg:border-t-0 lg:border-l border-gray-200 bg-white">
+        {/* Sidebar */}
+        <div className="border-t lg:border-t-0 lg:border-l border-[color:var(--border)] bg-[color:var(--surface)]">
           <div className="p-6">
-            <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
+            <h3 className="text-sm font-medium text-[color:var(--text)] flex items-center gap-2 uppercase tracking-wide">
               {props.currentUserWalletAddress === 'Connect your wallet' ? (
                 "Connect Wallet to Chat"
               ) : (
                 <>
-                  <div className="w-2.5 h-2.5 bg-green-500 rounded-full"/>
+                  <span className="relative flex w-2.5 h-2.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-[color:var(--online)] opacity-60 animate-ping" />
+                    <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-[color:var(--online)]" />
+                  </span>
                   <span>Online Users ({numberOfMembers})</span>
                 </>
               )}
