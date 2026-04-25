@@ -56,12 +56,13 @@ const LEAVE_TEMPLATES = [
 ];
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-// HH:MM in the user's locale (24h). Ably messages carry a server-set
+// 12-hour HH:MM AM/PM (e.g. "11:04 PM"). Ably messages carry a server-set
 // `timestamp` (ms epoch); we fall back to `Date.now()` for safety in case a
-// locally-injected message ever lacks one.
+// locally-injected message ever lacks one. `en-US` is pinned so the AM/PM
+// suffix renders consistently regardless of the user's browser locale.
 const formatShortTime = (ts) => {
   const d = new Date(ts || Date.now());
-  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 };
 const formatFullDate = (ts) => {
   const d = new Date(ts || Date.now());
