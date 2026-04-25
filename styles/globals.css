@@ -45,7 +45,10 @@ body {
   color: var(--text);
   font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: 'cv11', 'ss01';
-  transition: background-color 200ms ease, color 200ms ease;
+  /* No background-color/color transition on html/body: it caused a visible
+     animated flash on full page reloads (e.g. after logout) whenever the
+     browser computed the initial paint with the light :root tokens before
+     the dark class was applied. The theme toggle still feels instant. */
 }
 
 /* Layered gradient backdrop: violet top-left, cyan bottom-right, deep
