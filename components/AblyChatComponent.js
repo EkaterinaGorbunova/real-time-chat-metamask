@@ -1010,7 +1010,7 @@ const ChatBody = (props) => {
                   const replyAuthor = replyMeta ? parseClientId(replyMeta.clientId) : null;
                   return (
                     <div key={message.id || index} data-message-id={messageId || undefined} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full group/msg scroll-mt-4`}>
-                      <div className={`max-w-[70%] break-words p-4 transition-colors relative ${
+                      <div className={`max-w-[70%] wrap-break-word p-4 transition-colors relative ${
                         isMe
                           ? 'bg-(--accent) text-white rounded-t-2xl rounded-l-2xl shadow-glow-sm'
                           : 'bg-(--surface-muted) border border-(--border) text-(--text) rounded-t-2xl rounded-r-2xl'
@@ -1068,7 +1068,7 @@ const ChatBody = (props) => {
                             <div className="truncate opacity-80">{replyMeta.text}</div>
                           </button>
                         )}
-                        <div className="text-sm whitespace-pre-wrap break-words overflow-hidden">
+                        <div className="text-sm whitespace-pre-wrap wrap-break-word overflow-hidden">
                           {renderMarkdown(message.data)}
                         </div>
 
