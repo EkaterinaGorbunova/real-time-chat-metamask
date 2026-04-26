@@ -110,7 +110,7 @@ const WalletName = ({ address, fallback, className }) => {
       target="_blank"
       rel="noopener noreferrer"
       title={`View ${address} on Etherscan`}
-      className={`hover:underline hover:text-[color:var(--accent)] transition-colors ${className || ''}`}
+      className={`hover:underline hover:text-(--accent) transition-colors ${className || ''}`}
     >
       {ens || fallback}
     </a>
@@ -153,7 +153,7 @@ const VerifiedBadge = () => (
     data-testid="verified-badge"
     title="Verified: signature matches this wallet address"
     aria-label="Verified wallet"
-    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold flex-shrink-0"
+    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold shrink-0"
     style={{
       background: 'rgba(34, 197, 94, 0.15)',
       color: 'rgb(34, 197, 94)',
@@ -199,7 +199,7 @@ const ChainBadge = ({ chainId }) => {
   return (
     <span
       data-testid="chain-badge"
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide shrink-0"
       style={{
         background: `${info.color}22`,
         color: info.color,
@@ -318,7 +318,7 @@ const renderInline = (text, baseKey) => {
       out.push(
         <code
           key={`${baseKey}-c${i}`}
-          className="px-1.5 py-0.5 rounded bg-black/30 border border-[color:var(--border)] text-[0.92em] font-mono"
+          className="px-1.5 py-0.5 rounded bg-black/30 border border-(--border) text-[0.92em] font-mono"
         >
           {m[1]}
         </code>
@@ -374,7 +374,7 @@ const renderMarkdown = (text) => {
     out.push(
       <pre
         key={`md-pre${i}`}
-        className="my-1 p-2 rounded-lg bg-black/40 border border-[color:var(--border)] overflow-x-auto text-[0.9em]"
+        className="my-1 p-2 rounded-lg bg-black/40 border border-(--border) overflow-x-auto text-[0.9em]"
       >
         <code className="font-mono whitespace-pre">{body}</code>
       </pre>
@@ -745,8 +745,8 @@ const ChatBody = (props) => {
       const canTip = showTip && !!myWalletAddress;
 
       return (
-        <div key={member.clientId || index} data-testid="presence-row" data-client-id={member.clientId || ''} className="py-2 px-3 rounded-lg hover:bg-[color:var(--surface-muted)] transition-colors group">
-          <div className="text-[color:var(--text)] text-sm flex items-center justify-between gap-2">
+        <div key={member.clientId || index} data-testid="presence-row" data-client-id={member.clientId || ''} className="py-2 px-3 rounded-lg hover:bg-(--surface-muted) transition-colors group">
+          <div className="text-(--text) text-sm flex items-center justify-between gap-2">
             <span className="truncate flex items-center gap-1.5 min-w-0">
               <Avatar type={type} address={address} nickname={display} size={20} />
               {type === 'wallet' ? (
@@ -756,11 +756,11 @@ const ChatBody = (props) => {
               )}
               {isVerified && <VerifiedBadge />}
               {type === 'guest' && (
-                <span className="text-[color:var(--text-subtle)] text-xs">(guest)</span>
+                <span className="text-(--text-subtle) text-xs">(guest)</span>
               )}
-              {isItMe && <span className="text-[color:var(--accent)] text-xs ml-1">(me)</span>}
+              {isItMe && <span className="text-(--accent) text-xs ml-1">(me)</span>}
             </span>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               {memberChainId && <ChainBadge chainId={memberChainId} />}
               {showTip && (
                 <span className="relative group/tip">
@@ -773,8 +773,8 @@ const ChatBody = (props) => {
                     aria-label={canTip ? `Send a tip to ${display}` : 'Connect wallet to tip'}
                     className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border ${
                       canTip
-                        ? 'border-[color:var(--border)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] text-[color:var(--text-muted)]'
-                        : 'border-[color:var(--border)] text-[color:var(--text-subtle)] opacity-60 cursor-not-allowed'
+                        ? 'border-(--border) hover:border-(--accent) hover:text-(--accent) text-(--text-muted)'
+                        : 'border-(--border) text-(--text-subtle) opacity-60 cursor-not-allowed'
                     }`}
                   >
                     <span aria-hidden="true">💸</span>
@@ -782,7 +782,7 @@ const ChatBody = (props) => {
                   </button>
                   <span
                     role="tooltip"
-                    className="pointer-events-none absolute top-full right-0 mt-1 px-2 py-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface)] text-[10px] leading-tight text-[color:var(--text)] whitespace-nowrap shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity z-20"
+                    className="pointer-events-none absolute top-full right-0 mt-1 px-2 py-1 rounded-md border border-(--border) bg-(--surface) text-[10px] leading-tight text-(--text) whitespace-nowrap shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity z-20"
                   >
                     {canTip
                       ? `Send ETH tip to ${display}`
@@ -977,20 +977,20 @@ const ChatBody = (props) => {
           textarea auto-grows. On mobile the sidebar stacks below, so the card
           stays auto-height and the messages container falls back to a calc-based
           height that already reserves room for a worst-case multi-line input. */}
-      <div className="min-w-full border border-[color:var(--border)] rounded-2xl overflow-hidden lg:grid lg:grid-cols-4 bg-[color:var(--surface)]/80 backdrop-blur-xl lg:h-[calc(100dvh-100px)]">
+      <div className="min-w-full border border-(--border) rounded-2xl overflow-hidden lg:grid lg:grid-cols-4 bg-(--surface)/80 backdrop-blur-xl lg:h-[calc(100dvh-100px)]">
         {/* Main Chat Area */}
         <div className="lg:col-span-3 lg:h-full lg:min-h-0">
           <div className="flex flex-col lg:h-full lg:min-h-0">
             <div
               ref={messagesContainerRef}
-              className="flex flex-col gap-4 p-6 h-[calc(100dvh-330px)] lg:h-auto lg:flex-1 lg:min-h-0 overflow-y-auto overscroll-contain bg-[color:var(--bg)]/40"
+              className="flex flex-col gap-4 p-6 h-[calc(100dvh-330px)] lg:h-auto lg:flex-1 lg:min-h-0 overflow-y-auto overscroll-contain bg-(--bg)/40"
             >
               {props.currentUserWalletAddress !== 'Connect your wallet' &&
                 receivedMessages.map((message, index) => {
                   if (message.system) {
                     return (
                       <div key={message.id || index} className="flex justify-center w-full">
-                        <div className="px-3 py-1.5 text-xs text-[color:var(--text-muted)] rounded-full bg-[color:var(--surface-muted)]/60 border border-[color:var(--border)] flex items-center gap-1.5 max-w-[90%]">
+                        <div className="px-3 py-1.5 text-xs text-(--text-muted) rounded-full bg-(--surface-muted)/60 border border-(--border) flex items-center gap-1.5 max-w-[90%]">
                           <span aria-hidden="true">{message.emoji}</span>
                           <span className="truncate">{message.text}</span>
                         </div>
@@ -1012,10 +1012,10 @@ const ChatBody = (props) => {
                     <div key={message.id || index} data-message-id={messageId || undefined} className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full group/msg scroll-mt-4`}>
                       <div className={`max-w-[70%] break-words p-4 transition-colors relative ${
                         isMe
-                          ? 'bg-[color:var(--accent)] text-white rounded-t-2xl rounded-l-2xl shadow-glow-sm'
-                          : 'bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] rounded-t-2xl rounded-r-2xl'
+                          ? 'bg-(--accent) text-white rounded-t-2xl rounded-l-2xl shadow-glow-sm'
+                          : 'bg-(--surface-muted) border border-(--border) text-(--text) rounded-t-2xl rounded-r-2xl'
                       }`}>
-                        <div className={`text-xs mb-1 flex items-center gap-1 ${isMe ? 'opacity-80' : 'text-[color:var(--text-muted)]'}`}>
+                        <div className={`text-xs mb-1 flex items-center gap-1 ${isMe ? 'opacity-80' : 'text-(--text-muted)'}`}>
                           {isMe ? (
                             <span>You</span>
                           ) : (
@@ -1039,7 +1039,7 @@ const ChatBody = (props) => {
                               // overflows the chat container (which clips with
                               // overflow-y-auto): own messages are right-aligned,
                               // so we anchor by the right edge; others by the left.
-                              className={`pointer-events-none absolute bottom-full mb-1 px-2 py-1 rounded-md whitespace-nowrap text-xs bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text)] shadow-md opacity-0 group-hover/ts:opacity-100 transition-opacity z-10 ${
+                              className={`pointer-events-none absolute bottom-full mb-1 px-2 py-1 rounded-md whitespace-nowrap text-xs bg-(--surface) border border-(--border) text-(--text) shadow-md opacity-0 group-hover/ts:opacity-100 transition-opacity z-10 ${
                                 isMe ? 'right-0' : 'left-0'
                               }`}
                             >
@@ -1059,10 +1059,10 @@ const ChatBody = (props) => {
                             className={`block text-left w-full mb-2 px-2 py-1.5 rounded-md border-l-2 text-xs transition-colors cursor-pointer ${
                               isMe
                                 ? 'bg-white/10 border-white/60 text-white/90 hover:bg-white/15'
-                                : 'bg-[color:var(--surface)]/60 border-[color:var(--accent)] text-[color:var(--text-muted)] hover:bg-[color:var(--surface)]'
+                                : 'bg-(--surface)/60 border-(--accent) text-(--text-muted) hover:bg-(--surface)'
                             }`}
                           >
-                            <div className={`font-medium ${isMe ? 'opacity-90' : 'text-[color:var(--accent)]'}`}>
+                            <div className={`font-medium ${isMe ? 'opacity-90' : 'text-(--accent)'}`}>
                               {replyAuthor.display}
                             </div>
                             <div className="truncate opacity-80">{replyMeta.text}</div>
@@ -1090,8 +1090,8 @@ const ChatBody = (props) => {
                                   title={mine ? 'Remove your reaction' : 'Add reaction'}
                                   className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
                                     mine
-                                      ? 'bg-[color:var(--accent-soft)] border-[color:var(--accent)] text-[color:var(--accent)]'
-                                      : 'bg-[color:var(--surface)]/60 border-[color:var(--border)] text-[color:var(--text-muted)] hover:border-[color:var(--accent)]'
+                                      ? 'bg-(--accent-soft) border-(--accent) text-(--accent)'
+                                      : 'bg-(--surface)/60 border-(--border) text-(--text-muted) hover:border-(--accent)'
                                   }`}
                                 >
                                   <span aria-hidden="true">{emoji}</span>
@@ -1110,7 +1110,7 @@ const ChatBody = (props) => {
                             data-testid="reaction-picker"
                             className={`pointer-events-none opacity-0 group-hover/msg:opacity-100 group-hover/msg:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto transition-opacity absolute -top-3 ${
                               isMe ? 'left-2' : 'right-2'
-                            } flex gap-0.5 px-1 py-0.5 rounded-full bg-[color:var(--surface)] border border-[color:var(--border)] shadow-md z-10`}
+                            } flex gap-0.5 px-1 py-0.5 rounded-full bg-(--surface) border border-(--border) shadow-md z-10`}
                           >
                             {QUICK_REACTIONS.map((emoji) => (
                               <button
@@ -1126,7 +1126,7 @@ const ChatBody = (props) => {
                             ))}
                             {/* Divider + reply trigger sit in the same hover bar
                                 so all per-message actions live in one place. */}
-                            <span aria-hidden="true" className="w-px self-stretch bg-[color:var(--border)] mx-0.5" />
+                            <span aria-hidden="true" className="w-px self-stretch bg-(--border) mx-0.5" />
                             <button
                               type="button"
                               data-testid="reply-button"
@@ -1151,7 +1151,7 @@ const ChatBody = (props) => {
 
             {/* Message Input */}
             {props.currentUserWalletAddress !== 'Connect your wallet' && (
-              <form onSubmit={handleFormSubmission} className="flex-shrink-0 p-4 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
+              <form onSubmit={handleFormSubmission} className="shrink-0 p-4 bg-(--surface) border-t border-(--border)">
                 {/* Reply-target preview: only rendered when the user has chosen
                     to reply to a message. Shows the quoted author + snippet
                     plus an explicit cancel so the user can back out before
@@ -1159,13 +1159,13 @@ const ChatBody = (props) => {
                 {replyingTo && (
                   <div
                     data-testid="reply-preview"
-                    className="mb-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-[color:var(--surface-muted)] border-l-2 border-[color:var(--accent)]"
+                    className="mb-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-(--surface-muted) border-l-2 border-(--accent)"
                   >
                     <div className="flex-1 min-w-0 text-xs">
-                      <div className="text-[color:var(--accent)] font-medium">
+                      <div className="text-(--accent) font-medium">
                         Replying to {parseClientId(replyingTo.clientId).display}
                       </div>
-                      <div className="text-[color:var(--text-muted)] truncate">{replyingTo.text}</div>
+                      <div className="text-(--text-muted) truncate">{replyingTo.text}</div>
                     </div>
                     <button
                       type="button"
@@ -1173,7 +1173,7 @@ const ChatBody = (props) => {
                       onClick={() => setReplyingTo(null)}
                       title="Cancel reply"
                       aria-label="Cancel reply"
-                      className="text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors text-lg leading-none"
+                      className="text-(--text-muted) hover:text-(--text) transition-colors text-lg leading-none"
                     >
                       ×
                     </button>
@@ -1182,13 +1182,13 @@ const ChatBody = (props) => {
                 {/* Typing indicator + char counter share the same reserved
                     row so the input never jumps. Counter only appears when the
                     user crosses the soft-warn threshold. */}
-                <div className="h-5 mb-1 px-2 text-xs text-[color:var(--text-muted)] flex items-center gap-1.5" aria-live="polite">
+                <div className="h-5 mb-1 px-2 text-xs text-(--text-muted) flex items-center gap-1.5" aria-live="polite">
                   {typingLabel && (
                     <>
                       <span className="inline-flex items-center gap-0.5" aria-hidden="true">
-                        <span className="w-1 h-1 rounded-full bg-[color:var(--text-muted)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-1 h-1 rounded-full bg-[color:var(--text-muted)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-1 h-1 rounded-full bg-[color:var(--text-muted)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-(--text-muted) animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-(--text-muted) animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-(--text-muted) animate-bounce" style={{ animationDelay: '300ms' }} />
                       </span>
                       <span className="truncate">{typingLabel}</span>
                     </>
@@ -1205,7 +1205,7 @@ const ChatBody = (props) => {
                   {!isRateLimited && showCharCounter && (
                     <span
                       className={`ml-auto tabular-nums ${
-                        messageTextIsTooLong ? 'text-rose-500 font-semibold' : 'text-[color:var(--text-muted)]'
+                        messageTextIsTooLong ? 'text-rose-500 font-semibold' : 'text-(--text-muted)'
                       }`}
                       aria-live="polite"
                     >
@@ -1233,10 +1233,10 @@ const ChatBody = (props) => {
                     // resize-none + JS auto-grow: textarea expands up to ~6 rows
                     // then scrolls. leading-6 keeps the line-height consistent
                     // with the JS height calculation in resizeTextarea.
-                    className={`flex-1 min-w-0 px-4 py-2.5 text-base leading-6 bg-[color:var(--surface-muted)] border text-[color:var(--text)] placeholder:text-[color:var(--text-subtle)] rounded-2xl resize-none overflow-y-auto focus:outline-none focus:ring-2 transition-colors ${
+                    className={`flex-1 min-w-0 px-4 py-2.5 text-base leading-6 bg-(--surface-muted) border text-(--text) placeholder:text-(--text-subtle) rounded-2xl resize-none overflow-y-auto focus:outline-none focus:ring-2 transition-colors ${
                       messageTextIsTooLong
                         ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30'
-                        : 'border-[color:var(--border)] focus:border-[color:var(--accent)] focus:ring-[color:var(--accent)]/30'
+                        : 'border-(--border) focus:border-(--accent) focus:ring-(--accent)/30'
                     }`}
                   />
                   <EmojiPicker onSelect={insertEmoji} />
@@ -1250,7 +1250,7 @@ const ChatBody = (props) => {
                           ? `Message too long (${messageTextLength}/${MAX_MESSAGE_LENGTH})`
                           : 'Send (Enter), Shift+Enter for newline'
                     }
-                    className="flex-shrink-0 p-2.5 rounded-full bg-[color:var(--accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--accent-hover)] transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
+                    className="shrink-0 p-2.5 rounded-full bg-(--accent) text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-(--accent-hover) transition-all shadow-glow-sm hover:shadow-glow disabled:shadow-none"
                     aria-label="Send message"
                   >
                     <svg className="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1264,16 +1264,16 @@ const ChatBody = (props) => {
         </div>
 
         {/* Sidebar */}
-        <div className="border-t lg:border-t-0 lg:border-l border-[color:var(--border)] bg-[color:var(--surface)]">
+        <div className="border-t lg:border-t-0 lg:border-l border-(--border) bg-(--surface)">
           <div className="p-6">
-            <h3 className="text-sm font-medium text-[color:var(--text)] flex items-center gap-2 uppercase tracking-wide">
+            <h3 className="text-sm font-medium text-(--text) flex items-center gap-2 uppercase tracking-wide">
               {props.currentUserWalletAddress === 'Connect your wallet' ? (
                 "Connect Wallet to Chat"
               ) : (
                 <>
                   <span className="relative flex w-2.5 h-2.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-[color:var(--online)] opacity-60 animate-ping" />
-                    <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-[color:var(--online)]" />
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-(--online) opacity-60 animate-ping" />
+                    <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-(--online)" />
                   </span>
                   <span>Online Users ({numberOfMembers})</span>
                 </>

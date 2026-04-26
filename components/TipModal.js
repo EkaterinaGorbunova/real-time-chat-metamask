@@ -85,26 +85,26 @@ const TipModal = ({ open, onClose, recipientAddress, recipientLabel, fromAddress
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-sm rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-2xl"
+        className="w-full max-w-sm rounded-xl border border-(--border) bg-(--surface) p-5 shadow-2xl"
       >
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-base font-semibold text-[color:var(--text)]">Send a tip</h3>
-            <p className="text-xs text-[color:var(--text-muted)] mt-0.5 break-all">
-              To <span className="text-[color:var(--text)]">{recipientLabel}</span>
+            <h3 className="text-base font-semibold text-(--text)">Send a tip</h3>
+            <p className="text-xs text-(--text-muted) mt-0.5 break-all">
+              To <span className="text-(--text)">{recipientLabel}</span>
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-[color:var(--text-muted)] hover:text-[color:var(--text)] -mt-1 -mr-1 px-2 py-1 rounded"
+            className="text-(--text-muted) hover:text-(--text) -mt-1 -mr-1 px-2 py-1 rounded"
           >
             ✕
           </button>
         </div>
 
-        <label className="block text-xs text-[color:var(--text-muted)] mb-1" htmlFor="tip-amount">
+        <label className="block text-xs text-(--text-muted) mb-1" htmlFor="tip-amount">
           Amount ({ticker})
         </label>
         <div className="relative">
@@ -117,10 +117,10 @@ const TipModal = ({ open, onClose, recipientAddress, recipientLabel, fromAddress
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             disabled={status === 'pending' || status === 'success'}
-            className="w-full text-base px-3 py-2 rounded-lg bg-[color:var(--surface-muted)] border border-[color:var(--border)] text-[color:var(--text)] focus:outline-none focus:border-[color:var(--accent)]"
+            className="w-full text-base px-3 py-2 rounded-lg bg-(--surface-muted) border border-(--border) text-(--text) focus:outline-none focus:border-(--accent)"
             placeholder="0.001"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[color:var(--text-subtle)]">{ticker}</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-(--text-subtle)">{ticker}</span>
         </div>
 
         {error && <p data-testid="tip-error" className="mt-3 text-sm text-red-400">{error}</p>}
@@ -138,12 +138,12 @@ const TipModal = ({ open, onClose, recipientAddress, recipientLabel, fromAddress
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose}
-            className="px-3 py-2 text-sm rounded-lg text-[color:var(--text-muted)] hover:text-[color:var(--text)]">
+            className="px-3 py-2 text-sm rounded-lg text-(--text-muted) hover:text-(--text)">
             {status === 'success' ? 'Close' : 'Cancel'}
           </button>
           {status !== 'success' && (
             <button type="submit" disabled={status === 'pending'} data-testid="tip-submit"
-              className="px-4 py-2 text-sm rounded-lg bg-[color:var(--accent)] hover:bg-[color:var(--accent-hover)] text-white font-medium disabled:opacity-60 disabled:cursor-not-allowed">
+              className="px-4 py-2 text-sm rounded-lg bg-(--accent) hover:bg-(--accent-hover) text-white font-medium disabled:opacity-60 disabled:cursor-not-allowed">
               {status === 'pending' ? 'Sending…' : `Send ${ticker}`}
             </button>
           )}
