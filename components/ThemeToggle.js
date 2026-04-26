@@ -32,7 +32,7 @@ const ThemeToggle = () => {
       onClick={toggle}
       title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
       aria-label="Toggle theme"
-      className="flex items-center justify-center w-9 h-9 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-muted)] text-[color:var(--text-muted)] hover:text-[color:var(--accent)] hover:border-[color:var(--accent)] transition-colors"
+      className="flex items-center justify-center w-9 h-9 rounded-lg border border-(--border) bg-(--surface-muted) text-(--text-muted) hover:text-(--accent) hover:border-(--accent) transition-colors"
     >
       {isDark ? (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -41,7 +41,7 @@ const GuestBubble = ({ nickname, size }) => {
         fontSize: Math.max(10, Math.floor(size * 0.55)),
         lineHeight: `${size}px`,
       }}
-      className="inline-flex items-center justify-center rounded-full text-white font-semibold flex-shrink-0 select-none"
+      className="inline-flex items-center justify-center rounded-full text-white font-semibold shrink-0 select-none"
     >
       {initial}
     </span>
@@ -53,7 +53,7 @@ const Avatar = ({ type, address, nickname, size = 20 }) => {
     return (
       <span
         aria-hidden="true"
-        className="inline-flex items-center justify-center rounded-full overflow-hidden flex-shrink-0"
+        className="inline-flex items-center justify-center rounded-full overflow-hidden shrink-0"
         style={{ width: size, height: size }}
       >
         <Jazzicon diameter={size} seed={jsNumberForAddress(address)} />

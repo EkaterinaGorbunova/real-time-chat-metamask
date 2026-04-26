@@ -90,14 +90,14 @@ const EmojiPicker = ({ onSelect }) => {
   };
 
   return (
-    <div ref={containerRef} className="relative flex-shrink-0">
+    <div ref={containerRef} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label="Insert emoji"
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="flex items-center justify-center w-10 h-10 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-muted)] text-[color:var(--text-muted)] hover:text-[color:var(--accent)] hover:border-[color:var(--accent)] transition-colors"
+        className="flex items-center justify-center w-10 h-10 rounded-full border border-(--border) bg-(--surface-muted) text-(--text-muted) hover:text-(--accent) hover:border-(--accent) transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
@@ -111,9 +111,9 @@ const EmojiPicker = ({ onSelect }) => {
         <div
           role="dialog"
           aria-label="Emoji picker"
-          className="absolute bottom-full right-0 mb-3 w-72 sm:w-80 z-30 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]/95 backdrop-blur-xl shadow-glow card-neon overflow-hidden"
+          className="absolute bottom-full right-0 mb-3 w-72 sm:w-80 z-30 rounded-2xl border border-(--border) bg-(--surface)/95 backdrop-blur-xl shadow-glow card-neon overflow-hidden"
         >
-          <div className="flex items-center gap-1 px-2 py-2 border-b border-[color:var(--border)] bg-[color:var(--surface-muted)]/60">
+          <div className="flex items-center gap-1 px-2 py-2 border-b border-(--border) bg-(--surface-muted)/60">
             {CATEGORIES.map((category) => {
               const isActive = category.id === activeCategory;
               return (
@@ -125,8 +125,8 @@ const EmojiPicker = ({ onSelect }) => {
                   aria-pressed={isActive}
                   className={`flex-1 h-8 rounded-lg text-base transition-colors ${
                     isActive
-                      ? 'bg-[color:var(--accent)]/20 text-[color:var(--accent)]'
-                      : 'text-[color:var(--text-muted)] hover:bg-[color:var(--surface)]'
+                      ? 'bg-(--accent)/20 text-(--accent)'
+                      : 'text-(--text-muted) hover:bg-(--surface)'
                   }`}
                 >
                   <span aria-hidden="true">{category.icon}</span>
@@ -141,7 +141,7 @@ const EmojiPicker = ({ onSelect }) => {
                 type="button"
                 onClick={() => handleEmojiClick(emoji)}
                 aria-label={`Insert ${emoji}`}
-                className="h-8 w-8 flex items-center justify-center rounded-md text-lg hover:bg-[color:var(--surface-muted)] transition-colors"
+                className="h-8 w-8 flex items-center justify-center rounded-md text-lg hover:bg-(--surface-muted) transition-colors"
               >
                 <span aria-hidden="true">{emoji}</span>
               </button>
