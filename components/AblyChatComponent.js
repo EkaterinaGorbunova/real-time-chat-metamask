@@ -1102,14 +1102,16 @@ const ChatBody = (props) => {
                           </div>
                         )}
 
-                        {/* Hover-revealed quick-reaction picker. Anchored to
-                            the opposite side of the message so it never
-                            overlaps the bubble's own corner. */}
+                        {/* Hover-revealed quick-reaction picker. Anchored on
+                            the side of the bubble that has empty chat space
+                            next to it so the bar always grows inward and
+                            never gets clipped by the sidebar (own messages)
+                            or the chat's left edge (others'). */}
                         {messageId && (
                           <div
                             data-testid="reaction-picker"
                             className={`pointer-events-none opacity-0 group-hover/msg:opacity-100 group-hover/msg:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto transition-opacity absolute -top-3 ${
-                              isMe ? 'left-2' : 'right-2'
+                              isMe ? 'right-2' : 'left-2'
                             } flex gap-0.5 px-1 py-0.5 rounded-full bg-(--surface) border border-(--border) shadow-md z-10`}
                           >
                             {QUICK_REACTIONS.map((emoji) => (
