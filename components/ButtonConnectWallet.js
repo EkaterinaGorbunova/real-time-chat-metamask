@@ -27,7 +27,7 @@ const ButtonConnectWallet = (props) => {
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-(--bg)/70 backdrop-blur-xl border-b border-(--border)">
       <div className="container mx-auto">
-        <div className="flex flex-col md:flex-row items-center justify-between p-4 gap-3">
+        <div className="flex flex-wrap items-center justify-between p-4 gap-3">
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-(--accent-soft) border border-(--accent)/30 text-(--accent)">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
